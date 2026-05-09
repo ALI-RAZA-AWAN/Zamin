@@ -22,8 +22,8 @@
 
 ## 🛠️ Tech Stack
 * **Frontend:** React.js, Tailwind CSS (Utility-first styling)
-* **Backend:** Node.js, Express.js (Upcoming)
-* **Database:** SQL (Esports Tournament Management logic adapted for B2B)
+* **Backend:** Node.js, Express.js 
+* **Database:** MongoDB
 * **Tooling:** Vite, Lucide React (Icons)
 
 ## 📖 Use Case Study
