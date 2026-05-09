@@ -10,15 +10,15 @@
   
 ## 🚀 Key Features
 
-### Shopkeeper Module (Developed by Ali)
-**Product Discovery:** Advanced search and filtering based on category, city, and MOQ.
-**White-Label Catalog:** View factory-specific manufacturing capabilities and technical specs.
-**Sourcing Requests:** Submit digital RFQs with target prices and design attachments.
-
 ### Manufacturer Module (Developed by Ubada)
 **Catalog Management:** Add/Edit white-label products with Minimum Order Quantity (MOQ) constraints.
 **Quoting System:** Submit counter-offers and price estimates to potential buyers.
 **Production Tracking:** Update order status from "Raw Materials" to "Ready for Shipping".
+
+### Shopkeeper Module (Developed by Ali)
+**Product Discovery:** Advanced search and filtering based on category, city, and MOQ.
+**White-Label Catalog:** View factory-specific manufacturing capabilities and technical specs.
+**Sourcing Requests:** Submit digital RFQs with target prices and design attachments.
 
 ## 🛠️ Tech Stack
 * **Frontend:** React.js, Tailwind CSS (Utility-first styling)
