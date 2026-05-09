@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zamin - Buyer Signup</title>
+    <link rel="stylesheet" href="BuyerSignup.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="brand-header">
+            <div class="brand-mark">ZAMIN</div>
+            
+        </header>
+
+        <main class="signup-layout">
+            <section class="signup-intro">
+                <p class="eyebrow">Buyer Signup</p>
+                <h1>Join as a Buyer</h1>
+                <p class="intro-text">Create a buyer profile so manufacturers can understand your store, business type, and product interests.</p>
+            </section>
+
+            <section class="signup-card">
+                <form class="signup-form">
+                    <div class="section-heading">Common Information</div>
+
+                    <label class="field-label">
+                        Full Name
+                        <input type="text" placeholder="Full Name" required>
+                    </label>
+
+                    <label class="field-label">
+                        Email Address
+                        <input type="email" placeholder="Email Address" required>
+                    </label>
+
+                    <label class="field-label">
+                        Phone Number (WhatsApp)
+                        <input type="tel" placeholder="03XX-XXXXXXX" required>
+                    </label>
+
+                    <label class="field-label">
+                        Password
+                        <input type="password" placeholder="Create a password" required>
+                    </label>
+
+                    <div class="section-heading">Buyer Profile</div>
+
+                    <label class="field-label">
+                        Store / Brand Name
+                        <input type="text" placeholder="Store or brand name" required>
+                    </label>
+
+                    <label class="field-label">
+                        Store URL (Website Link)
+                        <input type="url" placeholder="https://yourstore.com">
+                    </label>
+
+                    <label class="field-label">
+                        Business Type
+                        <select required>
+                            <option value="" disabled selected>Select business type</option>
+                            <option>Shopify E-commerce</option>
+                            <option>Physical Retail</option>
+                            <option>Dropshipper</option>
+                            <option>Wholesale Buyer</option>
+                        </select>
+                    </label>
+
+                    <label class="field-label">
+                        Product Category Interest
+                        <select multiple size="4" required>
+                            <option>Men's Wear</option>
+                            <option>Women's Ethnic</option>
+                            <option>Accessories</option>
+                            <option>Kidswear</option>
+                            <option>Home Textiles</option>
+                        </select>
+                    </label>
+
+                    <button type="submit" class="submit-button">Create Buyer Account</button>
+                </form>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
