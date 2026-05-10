@@ -1,16 +1,36 @@
-# React + Vite
+# Zamin - B2B Garment Sourcing Platform 👕💼
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Zamin** is a white-label B2B marketplace designed to bridge the gap between local garment manufacturers and business buyers (Shop Owners). It streamlines the sourcing process through automated RFQs, catalog discovery, and production tracking.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 👥 The Team
+* **Ubada Hussain** - Develop (Manufacturer Side),UX/UI Design & Inventory Management.
+* **Ali Raza Awan** - Develop (Shopkeeper Side), Order Handling & Sourcing Logic.
+  
+## 🚀 Key Features
 
-## React Compiler
+### Manufacturer Module (Developed by Ubada)
+**Catalog Management:** Add/Edit white-label products with Minimum Order Quantity (MOQ) constraints.
+**Quoting System:** Submit counter-offers and price estimates to potential buyers.
+**Production Tracking:** Update order status from "Raw Materials" to "Ready for Shipping".
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Shopkeeper Module (Developed by Ali)
+**Product Discovery:** Advanced search and filtering based on category, city, and MOQ.
+**White-Label Catalog:** View factory-specific manufacturing capabilities and technical specs.
+**Sourcing Requests:** Submit digital RFQs with target prices and design attachments.
 
-## Expanding the ESLint configuration
+## 🛠️ Tech Stack
+* **Frontend:** React.js, Tailwind CSS (Utility-first styling)
+* **Backend:** Node.js, Express.js 
+* **Database:** MongoDB
+* **Tooling:** Vite, Lucide React (Icons)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 📖 Use Case Study
+This project is built following a rigorous Software Engineering approach. Our full case study includes:
+1. User Authentication & Role Selection.
+2. Search & Filter Algorithms.
+3. Quote Negotiation Logic.
+4. Admin Verification Protocols.
+
+---
