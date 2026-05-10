@@ -45,13 +45,12 @@
             const email = document.getElementById('email').value;
             const errorDiv = document.getElementById('error');
 
-            // Logic to simulate role-based redirection 
             if(email.includes('factory')) {
                 window.location.href = 'manufacturer-dashboard.html';
             } else if(email.includes('brand')) {
                 window.location.href = 'buyer-dashboard.html';
             } else {
-                errorDiv.style.display = 'block'; // [cite: 290]
+                errorDiv.style.display = 'block';
             }
         });
     </script>
