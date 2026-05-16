@@ -4,6 +4,7 @@ import About from './pages/About';
 import BuyerSignup from './pages/BuyerSignup';
 import ManufacturerSignup from './pages/ManufacturerSignup';
 import BuyerDashboard from './pages/buyerDash';
+import ManufacturerDashboard from './pages/ManufacturerDashboard'; // <-- Yahan Import Karein
 import Login from './pages/login';
 
 function App() {
@@ -18,6 +19,8 @@ function App() {
 
         {/* Dashboards */}
         <Route path="/dashboard/buyer" element={<BuyerDashboard />} />
+        {/* 👇 Yeh naya route add karein 👇 */}
+        <Route path="/dashboard/manufacturer" element={<ManufacturerDashboard />} />
       </Routes>
     </Router>
   );
