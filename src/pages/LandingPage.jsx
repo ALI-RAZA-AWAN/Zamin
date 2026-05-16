@@ -119,7 +119,7 @@ const LandingPage = () => {
                 </p>
               </div>
               <Link to="/signup/factory" className="w-full bg-white hover:bg-gray-50 text-[#1e252b] border border-[#dcd9d0] text-xs font-bold py-2.5 rounded-xl transition-all mt-4 text-center no-underline block">
-                Register Facility Terminal →
+                Register Factory Terminal →
               </Link>
             </div>
 
