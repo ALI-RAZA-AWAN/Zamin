@@ -14,6 +14,7 @@ const BuyerSignup = () => {
 
   // State for checkboxes
   const [selectedNiches, setSelectedNiches] = useState([]);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const categories = [
     { id: 'tshirts', label: 'T-shirts' },
@@ -30,11 +31,38 @@ const BuyerSignup = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  // 🚀 UPDATED: Now asynchronously sends data to your live local Express API server
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Registration Data:", { ...formData, niches: selectedNiches });
-    // After signup, take them to login
-    navigate('/login');
+    setErrorMessage('');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register-buyer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: formData.userName,      // Maps to backend/server.js schema parameters
+          brandName: formData.brandName,
+          email: formData.email,
+          password: formData.password,
+          niches: selectedNiches
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Buyer registration successful! Account generated in MongoDB.");
+        navigate('/login'); // Hand over control to your login terminal view
+      } else {
+        setErrorMessage(data.message || "Registration failed. Try again.");
+      }
+    } catch (err) {
+      console.error("Network interface error at signup:", err);
+      setErrorMessage("Could not connect to the backend server. Make sure 'node server.js' is active!");
+    }
   };
 
   return (
@@ -70,7 +98,6 @@ const BuyerSignup = () => {
 
           <div className="flex flex-col gap-1">
             <label className="text-sm font-semibold">Interested Categories</label>
-            {/* Tailwind Grid: 2 columns on mobile/laptop */}
             <div className="grid grid-cols-2 gap-3 mt-2 border border-[#eee] p-3 rounded">
               {categories.map((cat) => (
                 <label key={cat.id} className="flex items-center text-sm cursor-pointer hover:text-[#cea975] transition-colors">
@@ -89,6 +116,7 @@ const BuyerSignup = () => {
             <label className="text-sm font-semibold">Email</label>
             <input 
               type="email" 
+              placeholder="buyer@example.com"
               className="w-full p-3 border border-[#ddd] rounded focus:outline-none focus:border-[#cea975]"
               required
               onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -99,13 +127,21 @@ const BuyerSignup = () => {
             <label className="text-sm font-semibold">Password</label>
             <input 
               type="password" 
+              placeholder="••••••"
               className="w-full p-3 border border-[#ddd] rounded focus:outline-none focus:border-[#cea975]"
               required
               onChange={(e) => setFormData({...formData, password: e.target.value})}
             />
           </div>
 
-          <button type="submit" className="w-full p-4 bg-[#cea975] text-white rounded font-bold uppercase tracking-widest hover:bg-[#b89462] transition-all mt-4">
+          {/* Conditional Rendering: Displays network connection warnings dynamically */}
+          {errorMessage && (
+            <div className="text-[#ff4d4d] text-sm text-center bg-red-50 border border-red-100 p-2 rounded">
+              {errorMessage}
+            </div>
+          )}
+
+          <button type="submit" className="w-full p-4 bg-[#cea975] text-white rounded font-bold uppercase tracking-widest hover:bg-[#b89462] transition-all mt-4 cursor-pointer">
             Join as Buyer
           </button>
         </form>

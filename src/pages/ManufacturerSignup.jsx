@@ -14,17 +14,47 @@ const ManufacturerSignup = () => {
     password: ''
   });
 
+  const [errorMessage, setErrorMessage] = useState('');
+
   // Learning React: One function to handle ALL text inputs
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  // 🚀 UPDATED: Asynchronously transmits industrial profile variables directly to Express
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Manufacturer Data:", { ...formData, role: 'Manufacturer' });
-    alert("Registration successful! Waiting for Admin verification.");
-    navigate('/login');
+    setErrorMessage('');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register-manufacturer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          factoryName: formData.factoryName,
+          email: formData.email,
+          capacity: formData.capacity,
+          location: formData.location,
+          password: formData.password
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Registration successful! Account and Factory records synchronized in MongoDB.");
+        navigate('/login');
+      } else {
+        setErrorMessage(data.message || "Registration failed. Try again.");
+      }
+    } catch (err) {
+      console.error("Network interface error at signup:", err);
+      setErrorMessage("Could not connect to the backend server. Make sure 'node server.js' is active!");
+    }
   };
 
   return (
@@ -107,13 +137,21 @@ const ManufacturerSignup = () => {
             <input 
               type="password" 
               name="password"
+              placeholder="••••••"
               className="w-full p-3 border border-[#ddd] rounded focus:ring-2 focus:ring-[#ddbd91] focus:outline-none"
               required
               onChange={handleChange}
             />
           </div>
 
-          <button type="submit" className="w-full p-4 bg-[#4a4a4a] text-white rounded font-bold uppercase tracking-widest hover:bg-[#333] transition-all transform active:scale-95 mt-4">
+          {/* Error Notice Display Element */}
+          {errorMessage && (
+            <div className="text-[#ff4d4d] text-sm text-center bg-red-50 border border-red-100 p-2 rounded">
+              {errorMessage}
+            </div>
+          )}
+
+          <button type="submit" className="w-full p-4 bg-[#4a4a4a] text-white rounded font-bold uppercase tracking-widest hover:bg-[#333] transition-all transform active:scale-95 mt-4 cursor-pointer">
             Create Account
           </button>
         </form>

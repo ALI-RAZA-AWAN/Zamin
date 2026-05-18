@@ -9,12 +9,11 @@ import Login from './pages/login';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/signup/buyer" element={<BuyerSignup />} />
-        <Route path="/signup/factory" element={<ManufacturerSignup />} />
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/signup/buyer" element={<BuyerSignup />} />
+      <Route path="/signup/factory" element={<ManufacturerSignup />} />
         <Route path="/login" element={<Login />} />
 
         {/* Dashboards */}
@@ -22,7 +21,7 @@ function App() {
         {/* 👇 Yeh naya route add karein 👇 */}
         <Route path="/dashboard/manufacturer" element={<ManufacturerDashboard />} />
       </Routes>
-    </Router>
+    
   );
 }
 
