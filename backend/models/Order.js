@@ -1,29 +1,22 @@
 import mongoose from 'mongoose';
 
 const OrderSchema = new mongoose.Schema({
-  buyerId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
-    required: true 
-  },
-  factoryId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Factory', 
-    required: true 
-  },
-  productTitle: { type: String, required: true }, // e.g., "Premium Fleece Hoodies"
-  orderQuantity: { type: Number, required: true, min: 1 },
-  specifications: { type: String, required: true }, // Fabric demands, GSM weights, colors
+  factoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Factory', required: true },
+  buyerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  brandName: { type: String, required: true },
+  quantity: { type: Number, required: true },
+  buyerArticleUrl: { type: String, required: true }, 
+  specifications: { type: String },
   status: { 
     type: String, 
-    enum: ['pending_approval', 'active', 'rejected', 'completed'], 
-    default: 'pending_approval' 
+    enum: ['pending_quotation', 'pending_buyer_approval', 'accepted', 'rejected'], 
+    default: 'pending_quotation' 
   },
+  negotiatedPricePerUnit: { type: Number, default: null },
   currentProductionStage: { 
-    type: Number, 
-    min: 0, 
-    max: 4, 
-    default: 0 // Index maps to: 0=Sample, 1=Cutting, 2=Stitching, 3=QA, 4=Shipped
+    type: String, 
+    enum: ['Phase 0: Cutting', 'Phase 1: Stitching', 'Phase 2: Washing', 'Phase 3: Quality Check', 'Phase 4: Dispatched'],
+    default: 'Phase 0: Cutting'
   }
 }, { timestamps: true });
 

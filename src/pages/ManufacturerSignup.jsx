@@ -1,167 +1,76 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-const ManufacturerSignup = () => {
+function ManufacturerSignup() {
   const navigate = useNavigate();
+  const [name, setName] = useState('');
+  const [factoryName, setFactoryName] = useState('');
+  const [location, setLocation] = useState('');
+  const [capacity, setCapacity] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [err, setErr] = useState('');
 
-  // We group all inputs into one state object for cleaner code
-  const [formData, setFormData] = useState({
-    username: '',
-    factoryName: '',
-    email: '',
-    capacity: '',
-    location: '',
-    password: ''
-  });
-
-  const [errorMessage, setErrorMessage] = useState('');
-
-  // Learning React: One function to handle ALL text inputs
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  // 🚀 UPDATED: Asynchronously transmits industrial profile variables directly to Express
-  const handleSubmit = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
-    setErrorMessage('');
-
+    setErr('');
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register-manufacturer', {
+      const res = await fetch('http://localhost:5000/api/auth/register-manufacturer', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          factoryName: formData.factoryName,
-          email: formData.email,
-          capacity: formData.capacity,
-          location: formData.location,
-          password: formData.password
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, factoryName, location, capacity, email, password })
       });
-
-      const data = await response.json();
-
+      const data = await res.json();
       if (data.success) {
-        alert("Registration successful! Account and Factory records synchronized in MongoDB.");
+        alert("Industrial Unit profile live! Log in to deploy production floor access.");
         navigate('/login');
-      } else {
-        setErrorMessage(data.message || "Registration failed. Try again.");
-      }
-    } catch (err) {
-      console.error("Network interface error at signup:", err);
-      setErrorMessage("Could not connect to the backend server. Make sure 'node server.js' is active!");
-    }
+      } else { setErr(data.message || "Trace allocation runtime error."); }
+    } catch (err) { setErr("Gateway network server error."); }
   };
 
   return (
-    <div className="min-h-screen bg-[#fbf9f5] flex justify-center items-center p-5 font-sans text-[#444]">
-      <div className="bg-white p-10 rounded-lg shadow-[0_10px_30px_rgba(0,0,0,0.05)] w-full max-w-[500px]">
-        <div className="text-[2em] font-bold text-[#ddbd91] uppercase mb-5 text-center tracking-wider">
-          Zamin
-        </div>
-        <h2 className="mb-6 text-xl font-bold text-center text-[#333]">Manufacturer Registration</h2>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+      <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-xl p-6 md:p-8">
+        <button onClick={() => navigate('/login')} className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 block hover:underline">← Return To Login</button>
+        <h2 className="text-xl font-black text-emerald-900">Register Factory Unit</h2>
+        <p className="text-xs text-gray-500 mb-6">List manufacturing floor facility catalog to work direct with global buyer networks.</p>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Username */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold">Username</label>
-            <input 
-              type="text" 
-              name="username"
-              placeholder="Choose a username" 
-              className="w-full p-3 border border-[#ddd] rounded focus:ring-2 focus:ring-[#ddbd91] focus:outline-none"
-              required
-              onChange={handleChange}
-            />
-          </div>
-
-          {/* Factory Name */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold">Factory Name</label>
-            <input 
-              type="text" 
-              name="factoryName"
-              placeholder="Enter factory name" 
-              className="w-full p-3 border border-[#ddd] rounded focus:ring-2 focus:ring-[#ddbd91] focus:outline-none"
-              required
-              onChange={handleChange}
-            />
-          </div>
-
-          {/* Email */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold">Email Address</label>
-            <input 
-              type="email" 
-              name="email"
-              placeholder="email@example.com" 
-              className="w-full p-3 border border-[#ddd] rounded focus:ring-2 focus:ring-[#ddbd91] focus:outline-none"
-              required
-              onChange={handleChange}
-            />
-          </div>
-
-          {/* Capacity & Location in a grid for Laptop, stack for Mobile */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold">Capacity (units/mo)</label>
-              <input 
-                type="number" 
-                name="capacity"
-                placeholder="e.g. 5000" 
-                className="w-full p-3 border border-[#ddd] rounded focus:ring-2 focus:ring-[#ddbd91] focus:outline-none"
-                required
-                onChange={handleChange}
-              />
+        {err && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl text-center">{err}</div>}
+        
+        <form onSubmit={handleSignup} className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[11px] font-bold uppercase text-gray-600 block mb-1">Owner Full Name</label>
+              <input type="text" required className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm" value={name} onChange={e => setName(e.target.value)} />
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold">Location</label>
-              <input 
-                type="text" 
-                name="location"
-                placeholder="City, Country" 
-                className="w-full p-3 border border-[#ddd] rounded focus:ring-2 focus:ring-[#ddbd91] focus:outline-none"
-                required
-                onChange={handleChange}
-              />
+            <div>
+              <label className="text-[11px] font-bold uppercase text-gray-600 block mb-1">Factory Entity Name</label>
+              <input type="text" required className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm" placeholder="Chenab Mills" value={factoryName} onChange={e => setFactoryName(e.target.value)} />
             </div>
           </div>
-
-          {/* Password */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold">Password</label>
-            <input 
-              type="password" 
-              name="password"
-              placeholder="••••••"
-              className="w-full p-3 border border-[#ddd] rounded focus:ring-2 focus:ring-[#ddbd91] focus:outline-none"
-              required
-              onChange={handleChange}
-            />
-          </div>
-
-          {/* Error Notice Display Element */}
-          {errorMessage && (
-            <div className="text-[#ff4d4d] text-sm text-center bg-red-50 border border-red-100 p-2 rounded">
-              {errorMessage}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[11px] font-bold uppercase text-gray-600 block mb-1">Facility Location</label>
+              <input type="text" required className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm" placeholder="Lahore, PK" value={location} onChange={e => setLocation(e.target.value)} />
             </div>
-          )}
-
-          <button type="submit" className="w-full p-4 bg-[#4a4a4a] text-white rounded font-bold uppercase tracking-widest hover:bg-[#333] transition-all transform active:scale-95 mt-4 cursor-pointer">
-            Create Account
-          </button>
+            <div>
+              <label className="text-[11px] font-bold uppercase text-gray-600 block mb-1">Monthly Capacity (Pcs)</label>
+              <input type="number" required className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm" placeholder="50000" value={capacity} onChange={e => setCapacity(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="text-[11px] font-bold uppercase text-gray-600 block mb-1">Corporate Email Address</label>
+            <input type="email" required className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm" value={email} onChange={e => setEmail(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold uppercase text-gray-600 block mb-1">Secure Password Key</label>
+            <input type="password" required className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm" value={password} onChange={e => setPassword(e.target.value)} />
+          </div>
+          <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm uppercase tracking-wider">Register Factory</button>
         </form>
-
-        <div className="text-center mt-5 text-sm">
-          Already have an account? <Link to="/login" className="text-[#c9ad86] font-bold hover:underline">Login instead</Link>
-        </div>
       </div>
     </div>
   );
-};
+}
 
 export default ManufacturerSignup;

@@ -1,267 +1,297 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-const ManufacturerDashboard = () => {
-  const [activeTab, setActiveTab] = useState("overview");
+function ManufacturerDashboard() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('inbound');
   const [orders, setOrders] = useState([]);
-  const [incomingProposals, setIncomingProposals] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Read active session parameters from localStorage populated during login
-  const savedUserString = localStorage.getItem('zamin_user');
-  const loggedInUser = savedUserString ? JSON.parse(savedUserString) : null;
-  const currentFactoryId = loggedInUser ? loggedInUser.factoryId : null;
   
-  const BASE_URL = 'http://localhost:5000/api';
+  // Catalog Form States
+  const [articleName, setArticleName] = useState('');
+  const [imageUrl, setImageUrl] = useState(''); // Isme Base64 string save hogi
+  const [moq, setMoq] = useState('');
+  const [description, setDescription] = useState('');
+  
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [prices, setPrices] = useState({});
 
-  // Protect path execution context and fetch documents on lifecycle load
   useEffect(() => {
-    if (!currentFactoryId) {
-      alert("Session expired or invalid. Please sign in to access the Factory floor terminal.");
-      window.location.href = '/login';
-      return;
-    }
-    fetchOrdersFromBackend();
+    const raw = localStorage.getItem('zaminUser');
+    if (!raw) { navigate('/login'); return; }
+    const parsed = JSON.parse(raw);
+    setUser(parsed);
+    fetchOrders(parsed.factoryId);
   }, []);
 
-  const fetchOrdersFromBackend = async () => {
+  const fetchOrders = async (fid) => {
+    if (!fid) return;
     try {
-      setLoading(true);
-      const response = await fetch(`${BASE_URL}/orders/manufacturer/${currentFactoryId}`);
-      const data = await response.json();
-      
-      if (data.success) {
-        // Segregate live operations lines from newly unverified proposal forms
-        setOrders(data.orders.filter(o => o.status === 'active'));
-        setIncomingProposals(data.orders.filter(o => o.status === 'pending_approval'));
-      }
-      setLoading(false);
-    } catch (err) {
-      console.error("Express API connection failure:", err);
-      setLoading(false);
-    }
+      const res = await fetch(`http://localhost:5000/api/orders/manufacturer/${fid}`);
+      const data = await res.json();
+      if (data.success) setOrders(data.orders);
+    } catch (e) { console.error(e); }
   };
 
-  // Action 1: Mutate inbound contract to Active status
-  const handleAcceptProposal = async (orderId) => {
+  const executeAction = async (oid, status, price = null) => {
     try {
-      const response = await fetch(`${BASE_URL}/orders/${orderId}/status`, {
+      const res = await fetch(`http://localhost:5000/api/orders/${oid}/action`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'active' }) 
+        body: JSON.stringify({ status, price })
       });
-      const data = await response.json();
+      const data = await res.json();
       if (data.success) {
-        alert("Proposal accepted! Batch moved onto production line floor.");
-        fetchOrdersFromBackend(); 
+        alert(`Order profile marked as ${status}`);
+        fetchOrders(user.factoryId);
       }
-    } catch (err) {
-      console.error("Error updating order status:", err);
-    }
+    } catch (e) { console.error(e); }
   };
 
-  // Action 2: Mutate status schema parameter to Rejected
-  const handleDeclineProposal = async (orderId) => {
+  const handleUpdatePhase = async (oid, nextStage) => {
     try {
-      const response = await fetch(`${BASE_URL}/orders/${orderId}/status`, {
+      const res = await fetch(`http://localhost:5000/api/orders/${oid}/phase`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'rejected' })
+        body: JSON.stringify({ nextStage })
       });
-      const data = await response.json();
+      const data = await res.json();
       if (data.success) {
-        fetchOrdersFromBackend();
+        alert(`Production line advanced to ${nextStage}`);
+        fetchOrders(user.factoryId);
       }
-    } catch (err) {
-      console.error("Error declining proposal:", err);
-    }
+    } catch (e) { console.error(e); }
   };
 
-  // Action 3: Multi-stage assembly stepper adjustment (+1 database increment)
-  const handleAdvanceStage = async (orderId, currentStageIndex) => {
-    if (currentStageIndex >= 4) return; // Cap reached at index 'Shipped'
-    
+  // Device se image pick karke base64 text me convert karne ka function
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageUrl(reader.result); // Yeh image ko text string banayega
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // ✅ FIXED: Native form reset crash completely isolated and handled manually via React lifecycle state control
+  const handleUploadCatalogArticle = async (e) => {
+    e.preventDefault();
+    if (!imageUrl) {
+      alert("Please upload a reference image first.");
+      return;
+    }
+
     try {
-      const response = await fetch(`${BASE_URL}/orders/${orderId}/stage`, {
-        method: 'PUT',
+      const res = await fetch(`http://localhost:5000/api/factories/${user.factoryId}/articles`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nextStage: currentStageIndex + 1 })
+        body: JSON.stringify({ articleName, imageUrl, moq, description })
       });
-      const data = await response.json();
+      const data = await res.json();
       if (data.success) {
-        fetchOrdersFromBackend();
+        alert("New catalog item deployed live onto public directory profile.");
+        
+        // React State variables reset to blank sequence mapping
+        setArticleName(''); 
+        setImageUrl(''); 
+        setMoq(''); 
+        setDescription('');
+      } else {
+        alert(data.message || "Failed to deploy article to system directory.");
       }
-    } catch (err) {
-      console.error("Error advancing floor stage:", err);
+    } catch (e) { 
+      console.error(e); 
+      alert("Terminal gate error mapping file system profile.");
     }
   };
 
-  // Index maps explicitly to production stages tracked in MongoDB
-  const stageLabels = ["Pattern/Sample", "Cutting", "Stitching", "Quality Check", "Shipped"];
+  const handleLogout = () => {
+    localStorage.removeItem('zaminUser');
+    navigate('/login');
+  };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center font-mono text-xs text-[#9a9fa3] bg-[#1e252b]">
-        CONNECTING TO ZAMIN NODE SERVER...
-      </div>
-    );
-  }
+  const toggleCard = (id) => {
+    if (expandedOrderId === id) setExpandedOrderId(null);
+    else setExpandedOrderId(id);
+  };
 
   return (
-    <div className="min-h-screen bg-[#fcfbfa] text-[#2c3539] font-sans antialiased flex flex-col md:flex-row">
-      
-      {/* SIDEBAR TERMINAL LAYOUT */}
-      <aside className="w-full md:w-64 bg-[#1e252b] text-white flex flex-col justify-between shrink-0 md:sticky md:top-0 md:h-screen border-b md:border-b-0 md:border-r border-black z-40">
-        <div className="p-5 flex flex-row md:flex-col justify-between items-center md:items-start gap-4">
+    <div className="min-h-screen bg-gray-50 font-sans flex flex-col md:flex-row text-gray-800">
+      {/* Sidebar Layout */}
+      <div className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-gray-200 p-5 flex flex-col justify-between shrink-0">
+        <div>
+          <div className="mb-6">
+            <h3 className="text-md font-black text-gray-900 tracking-tight">FACTORY MANAGEMENT</h3>
+            <p className="text-[10px] text-gray-500 uppercase font-bold mt-0.5">Control Center Node</p>
+          </div>
+          <nav className="flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 pb-3 md:pb-0 border-b md:border-b-0 border-gray-100">
+            <button onClick={() => setActiveTab('inbound')} className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap text-left ${activeTab === 'inbound' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'}`}>Inbound Requests</button>
+            <button onClick={() => setActiveTab('floor')} className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap text-left ${activeTab === 'floor' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'}`}>Floor Overview</button>
+            <button onClick={() => setActiveTab('catalog')} className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap text-left ${activeTab === 'catalog' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'}`}>Product Catalog</button>
+          </nav>
+        </div>
+        <button onClick={handleLogout} className="mt-4 w-full px-3 py-2 text-xs font-bold bg-red-50 text-red-600 rounded-xl hover:bg-red-100 text-center uppercase tracking-wider">Log Out Engine Account</button>
+      </div>
+
+      {/* Main Panel Content */}
+      <div className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto max-w-5xl">
+        {activeTab === 'inbound' && (
           <div>
-            <h2 className="text-xl font-black tracking-tighter text-white m-0">
-              ZAMIN<span className="text-[#cea975]">.</span>
-            </h2>
-            <span className="text-[9px] uppercase tracking-widest text-[#9a9fa3] font-bold block mt-0.5">
-              Factory Node Terminal
+            <h2 className="text-xl font-black text-gray-900 mb-1">Inbound Production Requests</h2>
+            <p className="text-xs text-gray-500 mb-6">Review inbound client procurement line parameters and respond with action states.</p>
+            
+            <div className="space-y-4">
+              {orders.filter(o => o.status === 'pending_quotation' || o.status === 'pending_buyer_approval').map(order => {
+                const isExpanded = expandedOrderId === order._id;
+                return (
+                  <div key={order._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                    <div onClick={() => toggleCard(order._id)} className="p-4 sm:p-5 flex justify-between items-center cursor-pointer hover:bg-gray-50/50">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900">{order.brandName} Procurement Inquiry</h4>
+                        <p className="text-[11px] text-gray-500 mt-0.5 font-mono">Target Batch Quantity: {order.quantity} Pcs</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`px-2.5 py-1 text-[10px] uppercase font-black tracking-wider rounded-lg ${order.status === 'pending_quotation' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                          {order.status === 'pending_quotation' ? 'Awaiting Quote' : 'Quote Submitted'}
+                        </span>
+                        <span className="text-gray-400 text-xs font-bold">{isExpanded ? '▲' : '▼'}</span>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="px-4 pb-4 sm:px-5 sm:pb-5 border-t border-gray-100 pt-4 bg-gray-50/20">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-gray-400">Buyer Custom Spec Sheet Design</p>
+                            <img src={order.buyerArticleUrl} alt="Specs" className="w-32 h-32 object-cover border border-gray-200 rounded-xl mt-1.5 bg-white" onError={(e) => { e.target.src = 'https://placehold.co/150x150?text=No+Spec+Pic'; }} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-gray-400">Additional Instructions</p>
+                            <p className="text-xs text-gray-700 mt-1 bg-white border border-gray-200 p-2.5 rounded-xl h-24 overflow-y-auto">{order.specifications || "No specialized instruction overrides parsed."}</p>
+                          </div>
+                        </div>
+
+                        {order.status === 'pending_quotation' && (
+                          <div className="mt-5 pt-4 border-t border-gray-100 flex flex-col sm:flex-row gap-2 items-end">
+                            <div className="w-full sm:w-auto flex-1">
+                              <label className="text-[10px] uppercase font-bold text-gray-500 block mb-1">Set Factory Unit Price Per Unit (PKR)</label>
+                              <input type="number" placeholder="e.g. 1200" className="w-full p-2 bg-white border border-gray-300 rounded-xl text-xs focus:outline-none focus:border-emerald-500" value={prices[order._id] || ''} onChange={e => setPrices({...prices, [order._id]: e.target.value})} />
+                            </div>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                              <button onClick={() => executeAction(order._id, 'pending_buyer_approval', prices[order._id])} className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl uppercase tracking-wider hover:bg-emerald-700">Submit Offer</button>
+                              <button onClick={() => executeAction(order._id, 'rejected')} className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 font-bold text-xs rounded-xl uppercase tracking-wider hover:bg-red-100">Reject</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {orders.filter(o => o.status === 'pending_quotation' || o.status === 'pending_buyer_approval').length === 0 && (
+                <p className="text-xs text-gray-400 italic font-mono text-center py-6 bg-white border border-dashed border-gray-300 rounded-2xl">No active inbound sourcing trajectories detected.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+      {activeTab === 'floor' && (
+  <div>
+    <h2 className="text-xl font-black text-gray-900 mb-1">Live Floor Production Overview</h2>
+    <p className="text-xs text-gray-500 mb-6">Manage real-time production stages for accepted contracts.</p>
+    
+    <div className="space-y-4">
+      {orders.filter(o => o.status === 'accepted').map(order => (
+        <div key={order._id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h4 className="text-sm font-bold text-gray-900"> Batch for {order.buyerId?.brandName || 'Independent Retailer'}
+</h4>
+              <p className="text-[11px] text-gray-500 font-mono mt-0.5">Quantity: {order.quantity} Pcs</p>
+            </div>
+            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase rounded-lg border border-emerald-200">
+              Current Stage: {order.currentProductionStage}
             </span>
           </div>
-          <button 
-            onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
-            className="text-[11px] font-mono text-[#cea975] hover:text-white bg-transparent border border-[#cea975]/30 px-2 py-0.5 rounded cursor-pointer transition-colors"
-          >
-            Log Out
-          </button>
-        </div>
 
-        <nav className="flex flex-row md:flex-col overflow-x-auto border-t border-b border-white/5 bg-black/20 md:bg-transparent md:px-3 md:py-6 gap-1 w-full scrollbar-none">
-          <button 
-            onClick={() => setActiveTab("overview")}
-            className={`flex-1 md:flex-none text-center md:text-left px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${activeTab === "overview" ? "bg-[#cea975] text-[#1e252b]" : "text-[#9a9fa3] hover:text-white"}`}
-          >
-            🏭 Floor Overview
-          </button>
-          <button 
-            onClick={() => setActiveTab("proposals")}
-            className={`flex-1 md:flex-none text-center md:text-left px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${activeTab === "proposals" ? "bg-[#cea975] text-[#1e252b]" : "text-[#9a9fa3] hover:text-white"}`}
-          >
-            📥 Inbound Proposals ({incomingProposals.length})
-          </button>
-        </nav>
-
-        <div className="hidden md:block p-5 text-[10px] font-mono text-gray-500 border-t border-white/5">
-          MONGODB INSTANCE CONNECTED // SECURE
-        </div>
-      </aside>
-
-      {/* COMPONENT INTERACTION TRACKING SPACE */}
-      <main className="flex-1 p-6 md:p-10 max-w-7xl overflow-y-auto">
-
-        {/* WORKSPACE AREA 1: RUNNING FLUID CONTRACT ASSEMBLIES */}
-        {activeTab === "overview" && (
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-black text-[#1e252b] tracking-tight">Active Floor Lines</h1>
-              <p className="text-xs text-[#5a656d] mt-1 font-light">Monitor running jobs and update project tracking status indicators directly.</p>
-            </div>
-
-            {orders.length === 0 ? (
-              <div className="p-12 text-center bg-[#f5f3ee]/50 rounded-2xl border border-dashed border-[#dcd9d0]">
-                <p className="text-xs font-mono text-[#7a858d]">No active contracts running on the assembly lines right now.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-6">
-                {orders.map((order) => {
-                  const currentStageIndex = order.currentProductionStage || 0;
-                  const progressPercentage = ((currentStageIndex + 1) / stageLabels.length) * 100;
-
-                  return (
-                    <div key={order._id} className="bg-white border border-[#ece9e2] p-6 rounded-2xl shadow-sm space-y-4">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                          <span className="text-[9px] bg-green-100 text-green-800 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Active Batch</span>
-                          <h3 className="text-base font-bold text-[#1e252b] mt-1">{order.productTitle}</h3>
-                          <p className="text-xs text-[#7a858d] font-light">Target Output Quantity: {order.orderQuantity} Pcs</p>
-                        </div>
-                        
-                        <button 
-                          onClick={() => handleAdvanceStage(order._id, currentStageIndex)}
-                          disabled={currentStageIndex >= 4}
-                          className={`w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${currentStageIndex >= 4 ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-[#1e252b] text-white hover:bg-[#cea975] hover:text-[#1e252b]"}`}
-                        >
-                          {currentStageIndex >= 4 ? "✓ Fully Dispatched" : `Move to: ${stageLabels[currentStageIndex + 1]} →`}
-                        </button>
-                      </div>
-
-                      {/* Stepper Loader */}
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-[10px] font-mono text-gray-500">
-                          <span>Current Stage: <strong className="text-[#cea975] uppercase">{stageLabels[currentStageIndex]}</strong></span>
-                          <span>{Math.round(progressPercentage)}% Assembly</span>
-                        </div>
-                        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                          <div 
-                            className="bg-gradient-to-r from-[#cea975] to-[#1e252b] h-full transition-all duration-500"
-                            style={{ width: `${progressPercentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+          {/* Phase Controller */}
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            {['Phase 0: Cutting', 'Phase 1: Stitching', 'Phase 2: Washing', 'Phase 3: Quality Check', 'Phase 4: Dispatched'].map((stage) => (
+              <button 
+                key={stage}
+                onClick={() => handleUpdatePhase(order._id, stage)}
+                className={`text-[9px] font-bold py-2 px-3 rounded-lg uppercase transition-all ${
+                  order.currentProductionStage === stage 
+                  ? 'bg-emerald-600 text-white' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Mark as {stage}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
+      ))}
+      
+      {orders.filter(o => o.status === 'accepted').length === 0 && (
+        <p className="text-xs text-gray-400 italic text-center py-6 bg-white border border-dashed border-gray-300 rounded-2xl">
+          No active batches running on the factory floor.
+        </p>
+      )}
+    </div>
+  </div>
+)}
 
-        {/* WORKSPACE AREA 2: INCOMING CLIENT BULK REQUIREMENT INQUIRIES */}
-        {activeTab === "proposals" && (
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-black text-[#1e252b] tracking-tight">Direct Client Proposals</h1>
-              <p className="text-xs text-[#5a656d] mt-1 font-light">Evaluate tech spec requests sent by nearby retail buyers looking to occupy your floor space.</p>
-            </div>
-
-            {incomingProposals.length === 0 ? (
-              <div className="p-12 text-center bg-[#f5f3ee]/50 rounded-2xl border border-dashed border-[#dcd9d0]">
-                <p className="text-xs font-mono text-[#7a858d]">No pending contract inquiries in your inbound inbox cluster.</p>
+        {activeTab === 'catalog' && (
+          <div>
+            <h2 className="text-xl font-black text-gray-900 mb-1">Product Catalog Showcase</h2>
+            <p className="text-xs text-gray-500 mb-6">Upload recent apparel articles and capabilities configurations to display onto public buyer exploration indexes.</p>
+            
+            <form onSubmit={handleUploadCatalogArticle} className="bg-white border border-gray-200 p-4 sm:p-6 rounded-2xl shadow-sm space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-gray-600 block mb-1">Article Spec Item Name</label>
+                  <input type="text" required placeholder="Premium Fleece Hoodie" className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-900 focus:outline-none focus:border-emerald-500" value={articleName} onChange={e => setArticleName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-gray-600 block mb-1">Minimum Order Quantity (MOQ)</label>
+                  <input type="number" required placeholder="500" className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-900 focus:outline-none focus:border-emerald-500" value={moq} onChange={e => setMoq(e.target.value)} />
+                </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {incomingProposals.map((prop) => (
-                  <div key={prop._id} className="bg-white border border-[#ece9e2] p-5 rounded-2xl shadow-sm space-y-4">
-                    <div className="flex justify-between items-start border-b border-[#f5f2eb] pb-3">
-                      <div>
-                        <span className="text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Inbound Request</span>
-                        <h3 className="text-base font-bold text-[#1e252b] mt-1">{prop.productTitle}</h3>
-                        <p className="text-xs text-[#7a858d] mt-0.5">Requested Volume Capacity: <strong>{prop.orderQuantity} Pcs</strong></p>
-                      </div>
-                    </div>
-
-                    <div className="bg-[#fcfbfa] border rounded-xl p-3">
-                      <h4 className="text-[10px] uppercase font-bold tracking-widest text-gray-400 mb-1">Buyer Production Specifications:</h4>
-                      <p className="text-xs text-[#5a656d] leading-relaxed font-light">"{prop.specifications || 'No structural text specifications provided.'}"</p>
-                    </div>
-
-                    <div className="flex gap-2 pt-1">
-                      <button 
-                        onClick={() => handleAcceptProposal(prop._id)}
-                        className="flex-1 bg-[#1e252b] text-white py-2 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-green-700 transition-colors cursor-pointer"
-                      >
-                        Accept & Start Production Line
-                      </button>
-                      <button 
-                        onClick={() => handleDeclineProposal(prop._id)}
-                        className="px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer"
-                      >
-                        Decline
-                      </button>
-                    </div>
+              
+              {/* ✅ MODIFIED: File Input tracker synced with React clean lifecycle parameters to prevent layout failure */}
+              <div>
+                <label className="text-[10px] uppercase font-bold text-gray-600 block mb-1">Article Finished Product Reference Image</label>
+                <input 
+                  type="file" 
+                  key={imageUrl ? 'active-file' : 'empty-file'} // Automatic reference tracking shift
+                  accept="image/*"
+                  required={!imageUrl}
+                  className="w-full p-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-mono text-gray-900 focus:outline-none focus:border-emerald-500 file:mr-4 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" 
+                  onChange={handleImageChange} 
+                />
+                {imageUrl && (
+                  <div className="mt-2">
+                    <p className="text-[9px] text-gray-400 uppercase font-bold">Image Preview:</p>
+                    <img src={imageUrl} alt="Preview" className="w-20 h-20 object-cover rounded-xl border border-gray-200 mt-1" />
                   </div>
-                ))}
+                )}
               </div>
-            )}
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-gray-600 block mb-1">Fabric Specifications Details Description</label>
+                <textarea rows="3" placeholder="GSM parameters, thread counts..." className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-900 focus:outline-none focus:border-emerald-500" value={description} onChange={e => setDescription(e.target.value)}></textarea>
+              </div>
+              
+              <button type="submit" className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all">Publish Catalog Article Node</button>
+            </form>
           </div>
         )}
-
-      </main>
+      </div>
     </div>
   );
-};
+}
 
 export default ManufacturerDashboard;

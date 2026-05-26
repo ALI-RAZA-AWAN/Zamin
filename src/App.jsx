@@ -1,27 +1,27 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
-import About from './pages/About';
+import Login from './pages/Login';
 import BuyerSignup from './pages/BuyerSignup';
 import ManufacturerSignup from './pages/ManufacturerSignup';
-import BuyerDashboard from './pages/buyerDash';
-import ManufacturerDashboard from './pages/ManufacturerDashboard'; // <-- Yahan Import Karein
-import Login from './pages/login';
+import ManufacturerDashboard from './pages/ManufacturerDashboard';
+import BuyerDashboard from './pages/BuyerDashboard';
+import FactoryDetailsPage from './pages/FactoryDetailsPage';
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/signup/buyer" element={<BuyerSignup />} />
-      <Route path="/signup/factory" element={<ManufacturerSignup />} />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
-
-        {/* Dashboards */}
-        <Route path="/dashboard/buyer" element={<BuyerDashboard />} />
-        {/* 👇 Yeh naya route add karein 👇 */}
-        <Route path="/dashboard/manufacturer" element={<ManufacturerDashboard />} />
+        <Route path="/signup-buyer" element={<BuyerSignup />} />
+        <Route path="/signup-manufacturer" element={<ManufacturerSignup />} />
+        <Route path="/dashboard-manufacturer" element={<ManufacturerDashboard />} />
+        <Route path="/dashboard-buyer" element={<BuyerDashboard />} />
+        <Route path="/factory/:id" element={<FactoryDetailsPage />} />
+        
+        {/* Agar koi ajeeb URL likhe toh backup redirect */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-    
   );
 }
 

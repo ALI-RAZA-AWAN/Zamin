@@ -1,19 +1,18 @@
 import mongoose from 'mongoose';
 
+const ArticleSchema = new mongoose.Schema({
+  articleName: { type: String, required: true },
+  imageUrl: { type: String, required: true },
+  moq: { type: Number, required: true },
+  description: { type: String }
+});
+
 const FactorySchema = new mongoose.Schema({
-  userId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', // References the primary User identity document
-    required: true 
-  },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true },
-  location: { type: String, required: true }, // e.g., "Lahore", "Faisalabad"
-  capacity: { type: String }, // e.g., "50,000 units/month"
-  category: [{ 
-    type: String, 
-    default: ['T-Shirts', 'Polo-shirts', 'Hoodies', 'Denim'] 
-  }],
-  isVerified: { type: Boolean, default: true }
+  location: { type: String, default: 'Lahore' },
+  capacity: { type: Number, required: true },
+  uploadedArticles: [ArticleSchema]
 }, { timestamps: true });
 
 export default mongoose.model('Factory', FactorySchema);
