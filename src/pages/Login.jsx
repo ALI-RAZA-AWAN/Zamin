@@ -30,7 +30,7 @@ function Login() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
       <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-xl p-6 md:p-8">
-        <h1 className="text-2xl font-black text-gray-900 tracking-tight text-center">ZAMIN PLATFORM</h1>
+        <h1 className="text-2xl font-black text-[#B8965F] tracking-tight text-center">ZAMIN PLATFORM</h1>
         <p className="text-xs text-gray-500 text-center mt-1 mb-6">B2B Textile Sourcing Network Marketplace</p>
         
         {err && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl text-center font-medium">{err}</div>}
@@ -45,7 +45,7 @@ function Login() {
             <input type="password" required className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-emerald-500" value={password} onChange={e => setPassword(e.target.value)} />
           </div>
           {/* ✅ FIXED: Emerald Theme */}
-          <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm uppercase tracking-wider transition-all">Secure Sign In</button>
+          <button type="submit" className="w-full bg-gray-700 hover:bg-gray-900 text-white font-bold py-2.5 rounded-xl text-sm uppercase tracking-wider transition-all">Secure Sign In</button>
         </form>
         <div className="mt-6 border-t border-gray-200 pt-4 flex flex-col gap-2 text-center">
           <button onClick={() => navigate('/signup-buyer')} className="text-xs text-emerald-600 font-semibold hover:underline">Create Brand / Buyer Account</button>

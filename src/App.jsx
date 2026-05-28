@@ -7,11 +7,13 @@ import ManufacturerSignup from './pages/ManufacturerSignup';
 import ManufacturerDashboard from './pages/ManufacturerDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
 import FactoryDetailsPage from './pages/FactoryDetailsPage';
+import About from './pages/About';
 
 function App() {
   return (
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup-buyer" element={<BuyerSignup />} />
         <Route path="/signup-manufacturer" element={<ManufacturerSignup />} />
