@@ -39,14 +39,51 @@ app.post('/api/auth/register-manufacturer', async (req, res) => {
     res.status(201).json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-// Add this to server.js
 app.get('/api/buyer/shortlist/:buyerId', async (req, res) => {
   try {
-    // Assumption: User schema mein shortlist ka koi field hoga, 
-    // agar aapne alag collection banayi hai toh yahan logic change karein
+    if (!mongoose.Types.ObjectId.isValid(req.params.buyerId)) {
+      return res.status(400).json({ success: false, shortlisted: [], message: "Invalid buyer id" });
+    }
+
     const user = await User.findById(req.params.buyerId).populate('shortlistedFactories');
+    if (!user) return res.status(404).json({ success: false, shortlisted: [], message: "Buyer not found" });
+
     res.json({ success: true, shortlisted: user.shortlistedFactories || [] });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error("Shortlist fetch error:", err);
+    res.status(500).json({ success: false, shortlisted: [], message: err.message });
+  }
+});
+
+app.post('/api/buyer/shortlist-toggle', async (req, res) => {
+  try {
+    const { buyerId, factoryId } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(buyerId) || !mongoose.Types.ObjectId.isValid(factoryId)) {
+      return res.status(400).json({ success: false, message: "Invalid buyer or factory id" });
+    }
+
+    const user = await User.findById(buyerId);
+    if (!user) return res.status(404).json({ success: false, message: "Buyer not found" });
+
+    const factory = await Factory.findById(factoryId);
+    if (!factory) return res.status(404).json({ success: false, message: "Factory not found" });
+
+    const exists = user.shortlistedFactories.some(id => id.toString() === factoryId);
+    if (exists) {
+      user.shortlistedFactories = user.shortlistedFactories.filter(id => id.toString() !== factoryId);
+    } else {
+      user.shortlistedFactories.push(factoryId);
+    }
+
+    await user.save();
+    await user.populate('shortlistedFactories');
+
+    res.json({ success: true, shortlisted: user.shortlistedFactories });
+  } catch (err) {
+    console.error("Shortlist toggle error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // 2. Buyer Registration
@@ -102,11 +139,33 @@ app.post('/api/factories/:factoryId/articles', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.delete('/api/factories/:factoryId/articles/:articleId', async (req, res) => {
+  try {
+    const { factoryId, articleId } = req.params;
+    const factory = await Factory.findById(factoryId);
+    if (!factory) return res.status(404).json({ success: false, message: "Factory not found" });
+
+    factory.uploadedArticles = factory.uploadedArticles.filter(
+      article => article._id.toString() !== articleId
+    );
+    await factory.save();
+
+    res.json({ success: true, uploadedArticles: factory.uploadedArticles });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ================= ORDER ENGINE =================
 
 app.post('/api/orders/proposal', async (req, res) => {
   try {
     const { buyerId, ...orderData } = req.body;
+    const sampleImage = orderData.buyerArticleUrl?.trim();
+
+    if (!sampleImage) {
+      return res.status(400).json({ success: false, message: "Buyer sample image or link is required." });
+    }
     
     // 1. Database se Buyer ka naam fetch karein
     const buyer = await User.findById(buyerId);
@@ -114,6 +173,7 @@ app.post('/api/orders/proposal', async (req, res) => {
     // 2. Naya Order object banayein (brandName ke saath)
     const newOrder = new Order({
       ...orderData,
+      buyerArticleUrl: sampleImage,
       buyerId: buyerId,
       brandName: buyer ? buyer.brandName : 'Independent Retailer' // Yahan se field set hogi
     });
@@ -153,7 +213,10 @@ app.get('/api/orders/manufacturer/:factoryId', async (req, res) => {
 // 2. GET: Buyer ke apne orders dekhne ke liye
 app.get('/api/orders/buyer/:buyerId', async (req, res) => {
   try {
-    const orders = await Order.find({ buyerId: req.params.buyerId });
+    const orders = await Order.find({ buyerId: req.params.buyerId })
+      .sort({ createdAt: -1 })
+      .populate('factoryId', 'name location')
+      .exec();
     res.json({ success: true, orders });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -202,24 +265,48 @@ app.put('/api/orders/:orderId/accept-price', async (req, res) => {
     
     if (!order) return res.status(404).json({ message: "Order not found" });
 
-    // 2. Automatically Payment document create karein
-    const total = order.quantity * order.negotiatedPricePerUnit;
-    const newPayment = new Payment({
-      orderId: order._id,
-      buyerId: order.buyerId,
-      factoryId: order.factoryId,
-      totalAmount: total,
-      milestones: [
-        { milestoneNumber: 1, description: "Advance Procurement", percentage: 30, amount: total * 0.3, status: 'unpaid' },
-        { milestoneNumber: 2, description: "Mid-Production", percentage: 40, amount: total * 0.4, status: 'unpaid' },
-        { milestoneNumber: 3, description: "Final Dispatch", percentage: 30, amount: total * 0.3, status: 'unpaid' }
-      ]
-    });
-    
-    await newPayment.save();
+    // 2. Automatically generate a simple contract/payment record for the project demo.
+    const total = Number(order.quantity || 0) * Number(order.negotiatedPricePerUnit || 0);
+    let payment = await Payment.findOne({ orderId: order._id });
+
+    if (!payment) {
+      const installmentPlan = total >= 500000
+        ? [
+            { milestoneNumber: 1, description: "Advance payment on contract signing", percentage: 30, daysAfterContract: 0 },
+            { milestoneNumber: 2, description: "Mid-production payment", percentage: 40, daysAfterContract: 15 },
+            { milestoneNumber: 3, description: "Final payment before dispatch", percentage: 30, daysAfterContract: 30 }
+          ]
+        : [
+            { milestoneNumber: 1, description: "Advance payment on contract signing", percentage: 50, daysAfterContract: 0 },
+            { milestoneNumber: 2, description: "Final payment before dispatch", percentage: 50, daysAfterContract: 20 }
+          ];
+
+      payment = new Payment({
+        orderId: order._id,
+        buyerId: order.buyerId,
+        factoryId: order.factoryId,
+        receiptNumber: `ZMN-${Date.now().toString().slice(-6)}-${order._id.toString().slice(-4).toUpperCase()}`,
+        totalAmount: total,
+        paymentStatus: 'receipt_generated',
+        milestones: installmentPlan.map((step) => {
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + step.daysAfterContract);
+
+          return {
+            milestoneNumber: step.milestoneNumber,
+            description: step.description,
+            percentage: step.percentage,
+            amount: Math.round(total * (step.percentage / 100)),
+            status: 'unpaid',
+            dueDate
+          };
+        })
+      });
+      await payment.save();
+    }
 
     // 3. Updated order aur generated payment dono bhejein
-    res.json({ success: true, order: order, payment: newPayment });
+    res.json({ success: true, order: order, payment });
   } catch (err) { 
     res.status(500).json({ error: err.message }); 
   }
@@ -237,7 +324,14 @@ app.post('/api/payments/initialize', async (req, res) => {
       { milestoneNumber: 3, description: "Final Dispatch", percentage: 30, amount: totalAmount * 0.3, status: 'unpaid' }
     ];
 
-    const newPayment = new Payment({ orderId, buyerId, factoryId, totalAmount, milestones });
+    const newPayment = new Payment({
+      orderId,
+      buyerId,
+      factoryId,
+      receiptNumber: `ZMN-${Date.now().toString().slice(-6)}`,
+      totalAmount,
+      milestones
+    });
     await newPayment.save();
     
     res.status(201).json({ success: true, payment: newPayment });
@@ -254,7 +348,14 @@ app.post('/api/payments/initialize', async (req, res) => {
       { milestoneNumber: 2, description: "Mid-Production", percentage: 40, amount: totalAmount * 0.4, status: 'unpaid' },
       { milestoneNumber: 3, description: "Final Dispatch", percentage: 30, amount: totalAmount * 0.3, status: 'unpaid' }
     ];
-    const newPayment = new Payment({ orderId, buyerId, factoryId, totalAmount, milestones });
+    const newPayment = new Payment({
+      orderId,
+      buyerId,
+      factoryId,
+      receiptNumber: `ZMN-${Date.now().toString().slice(-6)}`,
+      totalAmount,
+      milestones
+    });
     await newPayment.save();
     res.status(201).json({ success: true, payment: newPayment });
   } catch (err) { res.status(500).json({ error: err.message }); }
