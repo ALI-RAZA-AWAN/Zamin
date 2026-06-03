@@ -2,4 +2,45 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@media print {
+  body {
+    background: white;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .contract-modal,
+  .contract-modal * {
+    visibility: visible;
+  }
+
+  .contract-modal {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    display: block !important;
+    background: white !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .contract-sheet {
+    max-width: none !important;
+    width: 100% !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .contract-print-area {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .contract-actions {
+    display: none !important;
+  }
+}
 /* stylelint-enable at-rule-no-unknown */
