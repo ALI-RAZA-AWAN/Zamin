@@ -6,6 +6,8 @@ function ManufacturerDashboard() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('inbound');
   const [orders, setOrders] = useState([]);
+  const [catalogItems, setCatalogItems] = useState([]);
+  const [showCatalogForm, setShowCatalogForm] = useState(false);
   
   // Catalog Form States
   const [articleName, setArticleName] = useState('');
@@ -22,6 +24,7 @@ function ManufacturerDashboard() {
     const parsed = JSON.parse(raw);
     setUser(parsed);
     fetchOrders(parsed.factoryId);
+    fetchCatalogItems(parsed.factoryId);
   }, []);
 
   const fetchOrders = async (fid) => {
@@ -31,6 +34,22 @@ function ManufacturerDashboard() {
       const data = await res.json();
       if (data.success) setOrders(data.orders);
     } catch (e) { console.error(e); }
+  };
+
+  const fetchCatalogItems = async (fid) => {
+    if (!fid) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/factories/${fid}`);
+      const data = await res.json();
+      if (data.success) setCatalogItems(data.factory.uploadedArticles || []);
+    } catch (e) { console.error(e); }
+  };
+
+  const resetCatalogForm = () => {
+    setArticleName('');
+    setImageUrl('');
+    setMoq('');
+    setDescription('');
   };
 
   const executeAction = async (oid, status, price = null) => {
@@ -65,11 +84,11 @@ function ManufacturerDashboard() {
 
   // Device se image pick karke base64 text me convert karne ka function
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onload = () => {
       setImageUrl(reader.result); // Yeh image ko text string banayega
     };
     reader.readAsDataURL(file);
@@ -94,16 +113,34 @@ function ManufacturerDashboard() {
         alert("New catalog item deployed live onto public directory profile.");
         
         // React State variables reset to blank sequence mapping
-        setArticleName(''); 
-        setImageUrl(''); 
-        setMoq(''); 
-        setDescription('');
+        resetCatalogForm();
+        setShowCatalogForm(false);
+        fetchCatalogItems(user.factoryId);
       } else {
         alert(data.message || "Failed to deploy article to system directory.");
       }
     } catch (e) { 
       console.error(e); 
       alert("Terminal gate error mapping file system profile.");
+    }
+  };
+
+  const handleRemoveCatalogArticle = async (articleId) => {
+    if (!window.confirm("Remove this catalog item from the public buyer showcase?")) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/factories/${user.factoryId}/articles/${articleId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCatalogItems(data.uploadedArticles || []);
+      } else {
+        alert(data.message || "Failed to remove catalog item.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Could not remove catalog item.");
     }
   };
 
@@ -129,6 +166,7 @@ function ManufacturerDashboard() {
           <nav className="flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 pb-3 md:pb-0 border-b md:border-b-0 border-gray-100">
             <button onClick={() => setActiveTab('inbound')} className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap text-left ${activeTab === 'inbound' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'}`}>Inbound Requests</button>
             <button onClick={() => setActiveTab('floor')} className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap text-left ${activeTab === 'floor' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'}`}>Floor Overview</button>
+            <button onClick={() => setActiveTab('history')} className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap text-left ${activeTab === 'history' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'}`}>Order History</button>
             <button onClick={() => setActiveTab('catalog')} className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap text-left ${activeTab === 'catalog' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'}`}>Product Catalog</button>
           </nav>
         </div>
@@ -165,7 +203,33 @@ function ManufacturerDashboard() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <p className="text-[10px] uppercase font-bold text-gray-400">Buyer Custom Spec Sheet Design</p>
-                            <img src={order.buyerArticleUrl} alt="Specs" className="w-32 h-32 object-cover border border-gray-200 rounded-xl mt-1.5 bg-white" onError={(e) => { e.target.src = 'https://placehold.co/150x150?text=No+Spec+Pic'; }} />
+                            {order.buyerArticleUrl ? (
+                              <div className="mt-1.5">
+                                <img
+                                  src={order.buyerArticleUrl}
+                                  alt="Buyer custom spec"
+                                  className="w-32 h-32 object-cover border border-gray-200 rounded-xl bg-white"
+                                  onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = 'https://placehold.co/150x150?text=No+Spec+Pic';
+                                  }}
+                                />
+                                {!order.buyerArticleUrl.startsWith('data:image') && (
+                                  <a
+                                    href={order.buyerArticleUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[10px] text-emerald-700 font-bold mt-2 inline-block hover:underline"
+                                  >
+                                    Open buyer image link
+                                  </a>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="w-32 h-32 border border-dashed border-gray-200 rounded-xl mt-1.5 bg-gray-50 text-gray-400 text-xs flex items-center justify-center text-center px-2">
+                                No sample image sent
+                              </div>
+                            )}
                           </div>
                           <div>
                             <p className="text-[10px] uppercase font-bold text-gray-400">Additional Instructions</p>
@@ -244,11 +308,110 @@ function ManufacturerDashboard() {
   </div>
 )}
 
-        {activeTab === 'catalog' && (
+        {activeTab === 'history' && (
           <div>
+            <h2 className="text-xl font-black text-gray-900 mb-1">Order History</h2>
+            <p className="text-xs text-gray-500 mb-6">Review completed orders and orders that ended without approval.</p>
+
+            <div className="space-y-4">
+              {orders.filter(o => o.status === 'rejected' || o.currentProductionStage === 'Phase 4: Dispatched').map(order => {
+                const completed = order.currentProductionStage === 'Phase 4: Dispatched';
+                const total = Number(order.quantity || 0) * Number(order.negotiatedPricePerUnit || 0);
+
+                return (
+                  <div key={order._id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900">
+                          {order.brandName || order.buyerId?.brandName || 'Buyer'} Order
+                        </h4>
+                        <p className="text-[11px] text-gray-500 font-mono mt-0.5">Quantity: {order.quantity} Pcs</p>
+                        <p className="text-[11px] text-gray-500 font-mono mt-0.5">Unit Price: PKR {order.negotiatedPricePerUnit || 'N/A'}</p>
+                        <p className="text-[11px] text-gray-500 font-mono mt-0.5">Total: PKR {total || 0}</p>
+                      </div>
+                      <span className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg border w-fit ${
+                        completed
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-red-50 text-red-600 border-red-200'
+                      }`}>
+                        {completed ? 'Completed / Dispatched' : 'Ended Without Approval'}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                        <p className="text-[10px] uppercase font-bold text-gray-400">Specifications</p>
+                        <p className="text-gray-700 mt-1">{order.specifications || 'No extra specifications provided.'}</p>
+                      </div>
+                      <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                        <p className="text-[10px] uppercase font-bold text-gray-400">Final Stage</p>
+                        <p className="text-gray-700 mt-1">{order.currentProductionStage}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {orders.filter(o => o.status === 'rejected' || o.currentProductionStage === 'Phase 4: Dispatched').length === 0 && (
+                <p className="text-xs text-gray-400 italic text-center py-6 bg-white border border-dashed border-gray-300 rounded-2xl">
+                  No completed or ended orders are available yet.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'catalog' && (
+          <div className="relative">
             <h2 className="text-xl font-black text-gray-900 mb-1">Product Catalog Showcase</h2>
-            <p className="text-xs text-gray-500 mb-6">Upload recent apparel articles and capabilities configurations to display onto public buyer exploration indexes.</p>
+            <p className="text-xs text-gray-500 mb-6">Manage apparel articles visible to buyers in the exploration directory.</p>
+            <button
+              onClick={() => setShowCatalogForm(true)}
+              className="absolute right-0 top-0 w-11 h-11 rounded-full bg-emerald-600 text-white text-2xl leading-none font-black shadow-sm hover:bg-emerald-700"
+              title="Add catalog item"
+            >
+              +
+            </button>
+
+            {catalogItems.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {catalogItems.map((item) => (
+                  <div key={item._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                    <img
+                      src={item.imageUrl}
+                      alt={item.articleName}
+                      className="w-full h-40 object-cover bg-gray-50"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = 'https://placehold.co/320x180?text=No+Pic';
+                      }}
+                    />
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h4 className="text-sm font-bold text-gray-900">{item.articleName}</h4>
+                          <p className="text-[11px] text-gray-500 font-mono mt-0.5">MOQ: {item.moq} Pcs</p>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveCatalogArticle(item._id)}
+                          className="px-2.5 py-1 bg-red-50 text-red-600 border border-red-100 rounded-lg text-[10px] font-black uppercase hover:bg-red-100"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-3 line-clamp-3">{item.description || "No fabric description provided."}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white border border-dashed border-gray-300 rounded-2xl py-12 px-5 text-center mb-6">
+                <p className="text-sm font-bold text-gray-700">No catalog items uploaded yet.</p>
+                <p className="text-xs text-gray-400 mt-1">Use the plus button to add your first public article.</p>
+              </div>
+            )}
             
+            {showCatalogForm && (
             <form onSubmit={handleUploadCatalogArticle} className="bg-white border border-gray-200 p-4 sm:p-6 rounded-2xl shadow-sm space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -266,7 +429,6 @@ function ManufacturerDashboard() {
                 <label className="text-[10px] uppercase font-bold text-gray-600 block mb-1">Article Finished Product Reference Image</label>
                 <input 
                   type="file" 
-                  key={imageUrl ? 'active-file' : 'empty-file'} // Automatic reference tracking shift
                   accept="image/*"
                   required={!imageUrl}
                   className="w-full p-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-mono text-gray-900 focus:outline-none focus:border-emerald-500 file:mr-4 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" 
@@ -285,8 +447,23 @@ function ManufacturerDashboard() {
                 <textarea rows="3" placeholder="GSM parameters, thread counts..." className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-900 focus:outline-none focus:border-emerald-500" value={description} onChange={e => setDescription(e.target.value)}></textarea>
               </div>
               
-              <button type="submit" className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all">Publish Catalog Article Node</button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetCatalogForm();
+                    setShowCatalogForm(false);
+                  }}
+                  className="py-3 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl"
+                >
+                  CANCEL
+                </button>
+                <button type="submit" className="py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all">
+                  PUBLISH
+                </button>
+              </div>
             </form>
+            )}
           </div>
         )}
       </div>
