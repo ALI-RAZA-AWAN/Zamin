@@ -11,6 +11,8 @@ function BuyerDashboard() {
   const [sentProposals, setSentProposals] = useState([]);
   const [shortlist, setShortlist] = useState([]);
   const [orderToPay, setOrderToPay] = useState(null);
+  const [receiptLoadingId, setReceiptLoadingId] = useState(null);
+  const [factorySearch, setFactorySearch] = useState('');
 
   // Card Expand Toggle state variable
   const [expandedCardId, setExpandedCardId] = useState(null);
@@ -27,6 +29,12 @@ function BuyerDashboard() {
     fetchShortlist(parsed.id);
   }, []);
 
+  useEffect(() => {
+    if ((activeTab === 'proposals' || activeTab === 'proposalHistory' || activeTab === 'active') && user?.id) {
+      fetchSentProposals(user.id);
+    }
+  }, [activeTab, user?.id]);
+
   const fetchFactories = async () => {
     try {
       const res = await fetch('http://localhost:5000/api/factories');
@@ -40,7 +48,12 @@ function BuyerDashboard() {
     try {
       const res = await fetch(`http://localhost:5000/api/orders/buyer/${bid}`);
       const data = await res.json();
-      if (data.success) setSentProposals(data.orders);
+      if (data.success) {
+        const sortedOrders = [...(data.orders || [])].sort((a, b) =>
+          new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+        );
+        setSentProposals(sortedOrders);
+      }
     } catch (e) { console.error(e); }
   };
 
@@ -50,7 +63,11 @@ function BuyerDashboard() {
       const res = await fetch(`http://localhost:5000/api/buyer/shortlist/${bid}`);
       const data = await res.json();
       if (data.success) setShortlist(data.shortlisted);
-    } catch (e) { console.error(e); }
+      else setShortlist([]);
+    } catch (e) {
+      console.error(e);
+      setShortlist([]);
+    }
   };
 
   const toggleShortlist = async (fid) => {
@@ -75,14 +92,56 @@ const acceptPriceOffer = async (oid) => {
     if (data.success) {
       // Backend ne ab payment document bhi bheja hai
       setOrderToPay(data.payment); 
+      setActiveTab('active');
       fetchSentProposals(user.id);
     }
   } catch (e) { console.error(e); }
+};
+
+const viewReceipt = async (oid) => {
+  try {
+    setReceiptLoadingId(oid);
+    const res = await fetch(`http://localhost:5000/api/payments/${oid}`);
+    const data = await res.json();
+    if (data.success && data.payment) {
+      setOrderToPay(data.payment);
+    } else {
+      alert('Receipt not found for this order yet.');
+    }
+  } catch (e) {
+    console.error(e);
+  } finally {
+    setReceiptLoadingId(null);
+  }
 };
   const toggleCardState = (id) => {
     if (expandedCardId === id) setExpandedCardId(null);
     else setExpandedCardId(id);
   };
+
+  const filteredFactories = factories.filter((factory) => {
+    const query = factorySearch.trim().toLowerCase();
+    if (!query) return true;
+
+    const productText = (factory.uploadedArticles || [])
+      .map(article => `${article.articleName || ''} ${article.description || ''}`)
+      .join(' ')
+      .toLowerCase();
+
+    return (
+      factory.name?.toLowerCase().includes(query) ||
+      factory.location?.toLowerCase().includes(query) ||
+      productText.includes(query)
+    );
+  });
+
+  const activeProposalOrders = sentProposals.filter(order =>
+    order.status === 'pending_quotation' || order.status === 'pending_buyer_approval'
+  );
+  const proposalHistoryOrders = sentProposals.filter(order =>
+    order.status === 'accepted' || order.status === 'rejected'
+  );
+  const acceptedOrders = sentProposals.filter(order => order.status === 'accepted');
 
   const handleLogout = () => {
     localStorage.removeItem('zaminUser');
@@ -101,6 +160,7 @@ const acceptPriceOffer = async (oid) => {
           <nav className="flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 pb-3 md:pb-0 border-b md:border-b-0 border-gray-100">
             <button onClick={() => setActiveTab('explore')} className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap text-left ${activeTab === 'explore' ? 'bg-blue-50 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>Explore Mills</button>
             <button onClick={() => setActiveTab('proposals')} className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap text-left ${activeTab === 'proposals' ? 'bg-blue-50 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>Sent Proposals</button>
+            <button onClick={() => setActiveTab('proposalHistory')} className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap text-left ${activeTab === 'proposalHistory' ? 'bg-blue-50 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>Proposal History</button>
             <button onClick={() => setActiveTab('shortlist')} className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap text-left ${activeTab === 'shortlist' ? 'bg-blue-50 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>Shortlisted Mills</button>
             <button onClick={() => setActiveTab('active')} className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap text-left ${activeTab === 'active' ? 'bg-blue-50 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}>Active Batches Tracker</button>
           </nav>
@@ -114,9 +174,20 @@ const acceptPriceOffer = async (oid) => {
           <div>
             <h2 className="text-xl font-black text-gray-900 mb-1">Verified Textile Manufacturing Directory</h2>
             <p className="text-xs text-gray-500 mb-6">Explore structural production lines and tap profiles to source volumes direct.</p>
+
+            <div className="mb-5 bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
+              <label className="text-[10px] uppercase font-bold text-gray-500 block mb-1">Search Factories</label>
+              <input
+                type="text"
+                value={factorySearch}
+                onChange={(e) => setFactorySearch(e.target.value)}
+                placeholder="Search by factory name, location, or product"
+                className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-900 focus:outline-none focus:border-blue-500"
+              />
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {factories.map(f => {
+              {filteredFactories.map(f => {
                 const isShortlisted = shortlist.some(s => s._id === f._id);
                 return (
                   <div key={f._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 hover:shadow-md transition-all flex flex-col justify-between">
@@ -132,6 +203,9 @@ const acceptPriceOffer = async (oid) => {
                   </div>
                 );
               })}
+              {filteredFactories.length === 0 && (
+                <p className="col-span-full text-xs text-gray-400 italic font-mono text-center py-6 bg-white border border-dashed border-gray-300 rounded-2xl">No factory matched your search.</p>
+              )}
             </div>
           </div>
         )}
@@ -141,7 +215,7 @@ const acceptPriceOffer = async (oid) => {
     <p className="text-xs text-gray-500 mb-6">Track pricing evaluation statuses and authorize production.</p>
     
     <div className="space-y-4">
-      {sentProposals.filter(o => o.status !== 'accepted').map(order => {
+      {activeProposalOrders.map(order => {
         const isExpanded = expandedCardId === order._id;
         return (
           <div key={order._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
@@ -162,7 +236,7 @@ const acceptPriceOffer = async (oid) => {
                 </div>
                 {order.status === 'pending_buyer_approval' && (
                   <button onClick={() => acceptPriceOffer(order._id)} className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white font-bold text-xs uppercase rounded-xl hover:bg-blue-700">
-                    Authorize Contract & Pay
+                    Agree Order & Generate Receipt
                   </button>
                 )}
               </div>
@@ -170,31 +244,72 @@ const acceptPriceOffer = async (oid) => {
           </div>
         );
       })}
+      {activeProposalOrders.length === 0 && (
+        <p className="text-xs text-gray-400 italic font-mono text-center py-6 bg-white border border-dashed border-gray-300 rounded-2xl">
+          No active sent proposals right now.
+        </p>
+      )}
     </div>
 
-    {/* PAYMENT MODAL OVERLAY */}
-    {orderToPay && (
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
-          <h2 className="text-xs font-black uppercase mb-4">Milestone Payment Tracker</h2>
-          
-          {/* orderToPay ab ek Payment document hai jismein milestones array hai */}
-          <PaymentReceipt 
-        order={orderToPay} 
-        milestones={orderToPay.milestones || []} 
-      />
-
-          <button 
-            onClick={() => setOrderToPay(null)} 
-            className="mt-6 w-full py-3 bg-gray-900 text-white text-xs font-bold rounded-xl"
-          >
-            ACKNOWLEDGE & CLOSE
-          </button>
-        </div>
-      </div>
-    )}
   </div>
 )}
+        {activeTab === 'proposalHistory' && (
+          <div>
+            <h2 className="text-xl font-black text-gray-900 mb-1">Proposal History</h2>
+            <p className="text-xs text-gray-500 mb-6">Review accepted contracts, rejected proposals, and older sourcing records.</p>
+
+            <div className="space-y-4">
+              {proposalHistoryOrders.map(order => {
+                const accepted = order.status === 'accepted';
+                const total = Number(order.quantity || 0) * Number(order.negotiatedPricePerUnit || 0);
+
+                return (
+                  <div key={order._id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900">
+                          Proposal to {order.factoryId?.name || 'Factory Unit'}
+                        </h4>
+                        <p className="text-[11px] text-gray-500 font-mono mt-0.5">Location: {order.factoryId?.location || 'N/A'}</p>
+                        <p className="text-[11px] text-gray-500 font-mono mt-0.5">Quantity: {order.quantity} Pcs</p>
+                        <p className="text-[11px] text-gray-500 font-mono mt-0.5">Unit Price: PKR {order.negotiatedPricePerUnit || 'N/A'}</p>
+                        <p className="text-[11px] text-gray-500 font-mono mt-0.5">Total: PKR {total || 0}</p>
+                      </div>
+                      <span className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg border w-fit ${
+                        accepted
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-red-50 text-red-600 border-red-200'
+                      }`}>
+                        {accepted ? 'Accepted Contract' : 'Rejected / Ended'}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs">
+                      <p className="text-[10px] uppercase font-bold text-gray-400">Specifications</p>
+                      <p className="text-gray-700 mt-1">{order.specifications || 'No extra specifications provided.'}</p>
+                    </div>
+
+                    {accepted && (
+                      <button
+                        onClick={() => viewReceipt(order._id)}
+                        disabled={receiptLoadingId === order._id}
+                        className="mt-4 px-4 py-2 bg-blue-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-blue-700 disabled:opacity-60"
+                      >
+                        {receiptLoadingId === order._id ? 'Loading...' : 'View Contract'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+
+              {proposalHistoryOrders.length === 0 && (
+                <p className="text-xs text-gray-400 italic font-mono text-center py-6 bg-white border border-dashed border-gray-300 rounded-2xl">
+                  No proposal history available yet.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
         {activeTab === 'shortlist' && (
           <div>
             <h2 className="text-xl font-black text-gray-900 mb-1">Shortlisted Manufacturing Units</h2>
@@ -223,7 +338,7 @@ const acceptPriceOffer = async (oid) => {
             <p className="text-xs text-gray-500 mb-6">Real-time terminal query monitoring structural pipeline stages directly from mill floors without manual sync recall.</p>
             
             <div className="space-y-4">
-              {sentProposals.filter(o => o.status === 'accepted').map(order => {
+              {acceptedOrders.map(order => {
                 const isExpanded = expandedCardId === order._id;
                 return (
                   <div key={order._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
@@ -239,6 +354,19 @@ const acceptPriceOffer = async (oid) => {
 
                     {isExpanded && (
                       <div className="px-4 pb-4 sm:px-5 sm:pb-5 border-t border-gray-100 pt-4 bg-gray-50/10">
+                        <div className="flex justify-between items-center mb-4">
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-gray-400">Payment</p>
+                            <p className="text-xs text-gray-700">Simple receipt generated after agreement.</p>
+                          </div>
+                          <button
+                            onClick={() => viewReceipt(order._id)}
+                            disabled={receiptLoadingId === order._id}
+                            className="px-3 py-2 bg-blue-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-blue-700 disabled:opacity-60"
+                          >
+                            {receiptLoadingId === order._id ? 'Loading...' : 'View Contract'}
+                          </button>
+                        </div>
                         {/* Real-time Visual Phase Tracker Bar Layout Engine */}
                         <div className="mt-2 grid grid-cols-5 text-center gap-1">
                           {['Cutting', 'Stitching', 'Washing', 'Quality Check', 'Dispatched'].map((stage, idx) => {
@@ -257,13 +385,51 @@ const acceptPriceOffer = async (oid) => {
                   </div>
                 );
               })}
-              {sentProposals.filter(o => o.status === 'accepted').length === 0 && (
+              {acceptedOrders.length === 0 && (
                 <p className="text-xs text-gray-400 italic font-mono text-center py-6 bg-white border border-dashed border-gray-300 rounded-2xl">No active manufacturing batches processing layout profiles currently.</p>
               )}
             </div>
           </div>
         )}
       </div>
+
+      {orderToPay && (
+        <div className="contract-modal fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="contract-sheet bg-white rounded-2xl max-w-xl w-full max-h-[92vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="contract-actions flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-white shrink-0">
+              <p className="text-xs font-black uppercase text-gray-700">Contract Preview</p>
+              <button
+                onClick={() => setOrderToPay(null)}
+                className="w-8 h-8 rounded-full bg-gray-100 text-gray-700 text-sm font-black hover:bg-gray-200"
+              >
+                X
+              </button>
+            </div>
+
+            <div className="contract-print-area overflow-y-auto px-5 py-4">
+              <PaymentReceipt
+                order={orderToPay}
+                milestones={orderToPay.milestones || []}
+              />
+            </div>
+
+            <div className="contract-actions grid grid-cols-2 gap-2 p-4 border-t border-gray-200 bg-white shrink-0">
+              <button 
+                onClick={() => setOrderToPay(null)} 
+                className="py-3 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl"
+              >
+                CLOSE
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="py-3 bg-blue-600 text-white text-xs font-bold rounded-xl"
+              >
+                PRINT CONTRACT
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
