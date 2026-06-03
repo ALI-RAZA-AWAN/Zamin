@@ -10,6 +10,7 @@ function FactoryDetailsPage() {
   // Proposal Submission Parameters state variable array mapping
   const [quantity, setQuantity] = useState('');
   const [buyerArticleUrl, setBuyerArticleUrl] = useState('');
+  const [buyerArticleFileName, setBuyerArticleFileName] = useState('');
   const [specifications, setSpecifications] = useState('');
 
   useEffect(() => {
@@ -30,8 +31,30 @@ function FactoryDetailsPage() {
     } catch (e) { console.error("Fetch Error:", e); }
   };
 
+  const handleBuyerImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setBuyerArticleUrl(reader.result);
+      setBuyerArticleFileName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleBuyerImageUrlChange = (e) => {
+    setBuyerArticleUrl(e.target.value);
+    setBuyerArticleFileName('');
+  };
+
   const executeSubmitProposal = async (e) => {
     e.preventDefault();
+    if (!buyerArticleUrl.trim()) {
+      alert("Please upload a sample image or paste an image link before sending the proposal.");
+      return;
+    }
+
     try {
       const res = await fetch('http://localhost:5000/api/orders/proposal', {
         method: 'POST',
@@ -41,7 +64,7 @@ function FactoryDetailsPage() {
           factoryId: id,
           brandName: buyer.brandName || "Independent Retailer",
           quantity: Number(quantity),
-          buyerArticleUrl,
+          buyerArticleUrl: buyerArticleUrl.trim(),
           specifications
         })
       });
@@ -101,9 +124,27 @@ function FactoryDetailsPage() {
               <input type="number" required placeholder="e.g. 1000" className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs" value={quantity} onChange={e => setQuantity(e.target.value)} />
             </div>
             <div>
-              <label className="text-[10px] uppercase font-bold text-gray-500 block mb-1">Target Spec Design Sample Image URL</label>
-              <input type="url" required placeholder="https://images.com/my-design.png" className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-mono" value={buyerArticleUrl} onChange={e => setBuyerArticleUrl(e.target.value)} />
+              <label className="text-[10px] uppercase font-bold text-gray-500 block mb-1">Target Spec Design Sample Image Link</label>
+              <input type="url" placeholder="https://images.com/my-design.png" className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-mono" value={buyerArticleFileName ? '' : buyerArticleUrl} onChange={handleBuyerImageUrlChange} />
             </div>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase font-bold text-gray-500 block mb-1">Upload Sample Image From Device</label>
+            <input
+              type="file"
+              accept="image/*"
+              className="w-full p-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-500 file:mr-4 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              onChange={handleBuyerImageChange}
+            />
+            {buyerArticleUrl && (
+              <div className="mt-2 flex items-center gap-3">
+                <img src={buyerArticleUrl} alt="Buyer sample preview" className="w-20 h-20 object-cover rounded-xl border border-gray-200 bg-white" onError={(e) => { e.currentTarget.src = 'https://placehold.co/120x120?text=Preview'; }} />
+                <div>
+                  <p className="text-[9px] text-gray-400 uppercase font-bold">Sample Preview</p>
+                  <p className="text-[11px] text-gray-600 font-mono break-all">{buyerArticleFileName || buyerArticleUrl}</p>
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <label className="text-[10px] uppercase font-bold text-gray-500 block mb-1">Specialized Fabrication & Custom Thread Requirements</label>
