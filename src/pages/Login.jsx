@@ -18,7 +18,8 @@ function Login() {
       });
       const data = await res.json();
       if (data.success) {
-        localStorage.setItem('zaminUser', JSON.stringify(data.user));
+        localStorage.setItem('zaminUser', JSON.stringify({ ...data.user, token: data.token }));
+        localStorage.setItem('zaminToken', data.token);
         if (data.user.role === 'buyer') navigate('/dashboard-buyer');
         else navigate('/dashboard-manufacturer');
       } else {

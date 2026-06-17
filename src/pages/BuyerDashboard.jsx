@@ -145,6 +145,7 @@ const viewReceipt = async (oid) => {
 
   const handleLogout = () => {
     localStorage.removeItem('zaminUser');
+    localStorage.removeItem('zaminToken');
     navigate('/login');
   };
 

@@ -146,6 +146,7 @@ function ManufacturerDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('zaminUser');
+    localStorage.removeItem('zaminToken');
     navigate('/login');
   };
 

@@ -1,11 +1,15 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import User from './models/User.js';
 import Factory from './models/Factory.js';
 import Order from './models/Order.js';
 import Payment from './models/Payment.js'; // Ensure this path is correct
 const app = express();
+const JWT_SECRET = process.env.JWT_SECRET || 'zamin_university_project_secret';
+const JWT_EXPIRES_IN = '7d';
 app.use(cors());
 
 // Image uploads ke liye 50MB limit zaroori hai
@@ -18,11 +22,42 @@ mongoose.connect('mongodb://127.0.0.1:27017/zaminDB')
 
 // ================= AUTH ROUTES =================
 
+const createAuthToken = (user) => jwt.sign(
+  {
+    id: user._id.toString(),
+    role: user.role,
+    factoryId: user.factoryId || null
+  },
+  JWT_SECRET,
+  { expiresIn: JWT_EXPIRES_IN }
+);
+
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Authentication token missing" });
+  }
+
+  try {
+    req.authUser = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch (err) {
+    res.status(401).json({ success: false, message: "Invalid or expired token" });
+  }
+};
+
 // 1. Manufacturer Registration
 app.post('/api/auth/register-manufacturer', async (req, res) => {
   try {
     const { name, email, password, factoryName, location, capacity } = req.body;
-    const newUser = new User({ name, email: email.toLowerCase().trim(), passwordHash: password, role: 'manufacturer' });
+    const normalizedEmail = email.toLowerCase().trim();
+    const existing = await User.findOne({ email: normalizedEmail });
+    if (existing) return res.status(400).json({ success: false, message: "Email already exists" });
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const newUser = new User({ name, email: normalizedEmail, passwordHash, role: 'manufacturer' });
     const savedUser = await newUser.save();
 
     const newFactory = new Factory({ 
@@ -36,8 +71,8 @@ app.post('/api/auth/register-manufacturer', async (req, res) => {
 
     savedUser.factoryId = savedFactory._id.toString();
     await savedUser.save();
-    res.status(201).json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    res.status(201).json({ success: true, message: "Manufacturer Registered" });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 app.get('/api/buyer/shortlist/:buyerId', async (req, res) => {
   try {
@@ -92,14 +127,17 @@ app.post('/api/auth/register-buyer', async (req, res) => {
     const { name, email, password, brandName } = req.body;
     
     // Check if user exists
-    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+    const normalizedEmail = email.toLowerCase().trim();
+    const existing = await User.findOne({ email: normalizedEmail });
     if (existing) return res.status(400).json({ success: false, message: "Email already exists" });
+
+    const passwordHash = await bcrypt.hash(password, 10);
 
     // Save New User
     const newUser = new User({ 
       name, 
-      email: email.toLowerCase().trim(), 
-      passwordHash: password, 
+      email: normalizedEmail, 
+      passwordHash, 
       role: 'buyer', 
       brandName: brandName || 'N/A' // brandName ki value yahan se jati hai
     });
@@ -117,10 +155,47 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email: email.toLowerCase().trim() });
-    if (!user || user.passwordHash !== password) return res.status(401).json({ message: "Invalid credentials" });
+    if (!user) return res.status(401).json({ success: false, message: "Invalid credentials" });
 
-    res.json({ success: true, user: { id: user._id, role: user.role, factoryId: user.factoryId } });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    const storedPassword = user.passwordHash || '';
+    const passwordMatches = storedPassword.startsWith('$2')
+      ? await bcrypt.compare(password, storedPassword)
+      : storedPassword === password;
+
+    if (!passwordMatches) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    if (!storedPassword.startsWith('$2')) {
+      user.passwordHash = await bcrypt.hash(password, 10);
+      await user.save();
+    }
+
+    const token = createAuthToken(user);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        role: user.role,
+        factoryId: user.factoryId,
+        brandName: user.brandName,
+        name: user.name
+      }
+    });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+app.get('/api/auth/me', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.authUser.id).select('-passwordHash');
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // ================= CATALOG ENGINE =================
