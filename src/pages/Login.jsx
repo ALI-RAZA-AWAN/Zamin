@@ -18,6 +18,7 @@ function Login() {
       });
       const data = await res.json();
       if (data.success) {
+        // Login successful ho to user data aur token browser me save karte hain.
         localStorage.setItem('zaminUser', JSON.stringify({ ...data.user, token: data.token }));
         localStorage.setItem('zaminToken', data.token);
         if (data.user.role === 'buyer') navigate('/dashboard-buyer');
@@ -33,9 +34,9 @@ function Login() {
       <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-xl p-6 md:p-8">
         <h1 className="text-2xl font-black text-[#B8965F] tracking-tight text-center">ZAMIN PLATFORM</h1>
         <p className="text-xs text-gray-500 text-center mt-1 mb-6">B2B Textile Sourcing Network Marketplace</p>
-        
+
         {err && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl text-center font-medium">{err}</div>}
-        
+
         <form onSubmit={executeLogin} className="space-y-4">
           <div>
             <label className="text-[11px] font-bold uppercase text-gray-600 block mb-1">Email Address</label>
@@ -45,7 +46,6 @@ function Login() {
             <label className="text-[11px] font-bold uppercase text-gray-600 block mb-1">Password</label>
             <input type="password" required className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-emerald-500" value={password} onChange={e => setPassword(e.target.value)} />
           </div>
-          {/* ✅ FIXED: Emerald Theme */}
           <button type="submit" className="w-full bg-gray-700 hover:bg-gray-900 text-white font-bold py-2.5 rounded-xl text-sm uppercase tracking-wider transition-all">Secure Sign In</button>
         </form>
         <div className="mt-6 border-t border-gray-200 pt-4 flex flex-col gap-2 text-center">

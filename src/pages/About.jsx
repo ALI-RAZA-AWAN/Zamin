@@ -7,7 +7,7 @@ const About = () => {
   return (
     <div className="min-h-screen bg-[#fcfbfa] text-[#2c3539] font-sans antialiased selection:bg-[#cea975]/30">
       
-      {/* 1. DYNAMIC RESPONSIVE NAVIGATION */}
+      {/* About page ka navbar main app pages tak access deta hai. */}
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#fcfbfa]/80 border-b border-[#ece9e2] px-4 py-4 md:px-8">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -19,7 +19,7 @@ const About = () => {
             </span>
           </div>
           
-          {/* Desktop Links Container */}
+          {/* Desktop links large screen par directly visible rehte hain. */}
           <div className="hidden md:flex items-center gap-4 md:gap-6">
             <Link to="/" className="text-xs md:text-sm font-medium text-[#5a656d] hover:text-[#cea975] transition-colors no-underline">
               Home
@@ -32,7 +32,7 @@ const About = () => {
             </Link>
           </div>
 
-          {/* Hamburger Menu Toggle Button */}
+          {/* Mobile button menu ko open/close karta hai. */}
           <div className="md:hidden flex items-center">
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -43,7 +43,7 @@ const About = () => {
           </div>
         </div>
 
-        {/* Mobile Dropdown Panel Drawer */}
+        {/* Mobile dropdown small screen par links ko clean rakhta hai. */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-[#fcfbfa] border-b border-[#ece9e2] shadow-md py-4 px-6 flex flex-col gap-3 md:hidden">
             <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#1e252b] no-underline py-1">
@@ -59,8 +59,7 @@ const About = () => {
         )}
       </nav>
 
-      {/* [The rest of your About layout components like the Hero section continue down here...] */}
-            {/* 2. PREMIUM HERO SECTION */}
+      {/* Hero section platform mission ko introduce karta hai. */}
       <header className="relative overflow-hidden bg-gradient-to-b from-[#f5f2eb] to-[#fcfbfa] pt-16 pb-12 px-4 md:pt-24 md:pb-16 md:px-8">
         <div className="absolute top-10 left-1/3 w-72 h-72 bg-[#cea975]/10 rounded-full blur-3xl"></div>
         
@@ -77,11 +76,11 @@ const About = () => {
         </div>
       </header>
 
-      {/* 3. VALUE PROPOSITION WORKFLOW (Responsive Column/Row Mapping) */}
+      {/* Ye section explain karta hai ke Zamin sourcing problem kaise solve karta hai. */}
       <section className="max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-20 border-t border-[#ece9e2]">
         <div className="flex flex-col gap-12 lg:flex-row lg:items-center lg:justify-between">
           
-          {/* VIDEO FRAME WITH HOVER WRAPPERS */}
+          {/* Video frame industry context visually show karta hai. */}
           <div className="flex-1 max-w-[550px] w-full mx-auto lg:mx-0">
             <div className="relative rounded-2xl overflow-hidden shadow-xl border border-[#ece9e2] bg-[#1e252b] aspect-[4/3] w-full">
               <video 
@@ -101,7 +100,7 @@ const About = () => {
             </div>
           </div>
           
-          {/* CONTENT DISCOVERY TEXT AREA */}
+          {/* Text area project ki value proposition detail me batata hai. */}
           <div className="flex-1 text-center lg:text-left space-y-6">
             <div>
               <h2 className="text-xs uppercase tracking-widest text-[#cea975] font-bold mb-1">Operational Breakthrough</h2>
@@ -120,12 +119,12 @@ const About = () => {
         </div>
       </section>
 
-      {/* 4. MISSION TIERS COMPONENT (Modernized Cards Grid) */}
+      {/* Mission cards project ke core benefits ko break down karte hain. */}
       <section className="bg-[#f5f3ee]/50 border-t border-b border-[#ece9e2] py-16 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             
-            {/* Card 1 */}
+            {/* Pehla card direct sourcing ko explain karta hai. */}
             <div className="bg-white p-6 sm:p-8 rounded-2xl border border-[#ece9e2] shadow-sm hover:shadow-md transition-all">
               <span className="text-xs font-mono text-[#cea975] font-bold tracking-widest">01 / DISCOVERY</span>
               <h3 className="text-base font-bold text-[#1e252b] mt-3 mb-2 uppercase tracking-wide">Direct Sourcing</h3>
@@ -134,7 +133,7 @@ const About = () => {
               </p>
             </div>
 
-            {/* Card 2 */}
+            {/* Dusra card quality aur compliance focus ko explain karta hai. */}
             <div className="bg-white p-6 sm:p-8 rounded-2xl border border-[#ece9e2] shadow-sm hover:shadow-md transition-all">
               <span className="text-xs font-mono text-[#cea975] font-bold tracking-widest">02 / COMPLIANCE</span>
               <h3 className="text-base font-bold text-[#1e252b] mt-3 mb-2 uppercase tracking-wide">Verified Quality</h3>
@@ -143,7 +142,7 @@ const About = () => {
               </p>
             </div>
 
-            {/* Card 3 */}
+            {/* Teesra card industrial specialization ko explain karta hai. */}
             <div className="bg-white p-6 sm:p-8 rounded-2xl border border-[#ece9e2] shadow-sm hover:shadow-md transition-all">
               <span className="text-xs font-mono text-[#cea975] font-bold tracking-widest">03 / SPECIALIZATION</span>
               <h3 className="text-base font-bold text-[#1e252b] mt-3 mb-2 uppercase tracking-wide">Industrial Focus</h3>
@@ -156,7 +155,7 @@ const About = () => {
         </div>
       </section>
 
-      {/* 5. FOOTER ARCHITECTURE */}
+      {/* Footer me platform ka closing system status show hota hai. */}
       <footer className="bg-[#1e252b] text-[#9a9fa3] py-10 px-4 md:px-8 border-t border-black">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] font-mono">
           <div className="text-center sm:text-left">

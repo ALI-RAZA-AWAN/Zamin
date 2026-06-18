@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-// BuyerDashboard.jsx ke top par:
 import PaymentReceipt from './PaymentReceipt';
 
 function BuyerDashboard() {
@@ -14,7 +13,7 @@ function BuyerDashboard() {
   const [receiptLoadingId, setReceiptLoadingId] = useState(null);
   const [factorySearch, setFactorySearch] = useState('');
 
-  // Card Expand Toggle state variable
+  // Ye state jis card ko open rakhna ho uski id store karti hai.
   const [expandedCardId, setExpandedCardId] = useState(null);
 
   useEffect(() => {
@@ -23,7 +22,7 @@ function BuyerDashboard() {
     const parsed = JSON.parse(raw);
     setUser(parsed);
     
-    // Core structural real-time triggers initialization fetch routines
+    // Page load par buyer ki basic dashboard data ek sath load hoti hai.
     fetchFactories();
     fetchSentProposals(parsed.id);
     fetchShortlist(parsed.id);
@@ -79,7 +78,7 @@ function BuyerDashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        fetchShortlist(user.id); // Live local component array structural reload
+        fetchShortlist(user.id);
       }
     } catch (e) { console.error(e); }
   };
@@ -90,7 +89,7 @@ const acceptPriceOffer = async (oid) => {
     });
     const data = await res.json();
     if (data.success) {
-      // Backend ne ab payment document bhi bheja hai
+      // Price accept hone ke baad backend contract/payment record wapas bhejta hai.
       setOrderToPay(data.payment); 
       setActiveTab('active');
       fetchSentProposals(user.id);
@@ -151,7 +150,7 @@ const viewReceipt = async (oid) => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col md:flex-row text-gray-800">
-      {/* Universal Fluid Layout Navigation System */}
+      {/* Sidebar me buyer ke main dashboard tabs rakhe gaye hain. */}
       <div className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-gray-200 p-5 flex flex-col justify-between shrink-0">
         <div>
           <div className="mb-6">
@@ -169,7 +168,7 @@ const viewReceipt = async (oid) => {
         <button onClick={handleLogout} className="mt-4 w-full px-3 py-2 text-xs font-bold bg-red-50 text-red-600 rounded-xl hover:bg-red-100 text-center uppercase tracking-wider">Log Out Interface Profile</button>
       </div>
 
-      {/* Main Stream Area */}
+      {/* Active tab ke hisab se center panel ka content change hota hai. */}
       <div className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto max-w-5xl">
         {activeTab === 'explore' && (
           <div>
@@ -368,7 +367,7 @@ const viewReceipt = async (oid) => {
                             {receiptLoadingId === order._id ? 'Loading...' : 'View Contract'}
                           </button>
                         </div>
-                        {/* Real-time Visual Phase Tracker Bar Layout Engine */}
+                        {/* Stage bar se buyer ko production progress simple form me nazar aati hai. */}
                         <div className="mt-2 grid grid-cols-5 text-center gap-1">
                           {['Cutting', 'Stitching', 'Washing', 'Quality Check', 'Dispatched'].map((stage, idx) => {
                             const currentIdx = ['Phase 0: Cutting', 'Phase 1: Stitching', 'Phase 2: Washing', 'Phase 3: Quality Check', 'Phase 4: Dispatched'].indexOf(order.currentProductionStage);

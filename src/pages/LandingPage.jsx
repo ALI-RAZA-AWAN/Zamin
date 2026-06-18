@@ -2,17 +2,17 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const LandingPage = () => {
-  // Mobile Hamburger Navbar State
+  // Mobile menu open/close state navbar ke liye use hoti hai.
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#fcfbfa] text-[#2c3539] font-sans antialiased selection:bg-[#cea975]/30 flex flex-col">
       
-      {/* 1. DYNAMIC RESPONSIVE NAVIGATION */}
+      {/* Navbar buyer/factory ko main pages tak quick access deta hai. */}
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#fcfbfa]/80 border-b border-[#ece9e2] px-4 py-4 md:px-8">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           
-          {/* Logo Interface */}
+          {/* Brand logo platform identity dikhata hai. */}
           <div className="flex items-center gap-2">
             <Link to="/" className="text-xl md:text-2xl font-black tracking-tighter text-[#1e252b] no-underline">
               ZAMIN<span className="text-[#cea975]">.</span>
@@ -22,7 +22,7 @@ const LandingPage = () => {
             </span>
           </div>
           
-          {/* Desktop Navigation Links (Hidden on small mobile screens, displays on md screens) */}
+          {/* Desktop par direct navigation links show hote hain. */}
           <div className="hidden md:flex items-center gap-6">
             <Link to="/about" className="text-sm font-medium text-[#5a656d] hover:text-[#cea975] transition-colors no-underline">
               About
@@ -35,7 +35,7 @@ const LandingPage = () => {
             </Link>
           </div>
 
-          {/* Mobile Hamburger Menu Toggle Button */}
+          {/* Mobile par menu button links ko open/close karta hai. */}
           <div className="md:hidden flex items-center">
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -47,7 +47,7 @@ const LandingPage = () => {
           </div>
         </div>
 
-        {/* Mobile Dropdown Panel Drawer (Stops links from dropping onto layout blocks awkwardly) */}
+        {/* Mobile dropdown links ko compact screen par separate panel me rakhta hai. */}
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-[#fcfbfa] border-b border-[#ece9e2] shadow-lg py-4 px-6 flex flex-col gap-3 md:hidden z-50 animate-fade-in">
             <Link 
@@ -76,9 +76,8 @@ const LandingPage = () => {
         )}
       </nav>
 
-      {/* 2. MODERN HERO SECTION */}
+      {/* Hero section project ka main B2B purpose explain karta hai. */}
       <header className="relative overflow-hidden bg-gradient-to-b from-[#f5f2eb] to-[#fcfbfa] pt-12 pb-8 px-4 md:pt-20 md:pb-12 md:px-8">
-        {/* Decorative structural glow */}
         <div className="absolute top-10 left-1/4 w-72 h-72 bg-[#cea975]/10 rounded-full blur-3xl pointer-events-none"></div>
         
         <div className="max-w-5xl mx-auto text-center relative z-10">
@@ -92,10 +91,10 @@ const LandingPage = () => {
             Direct high-capacity matching between verified domestic manufacturing mills and corporate retail brands. Skip the middle agents. Pure wholesale execution.
           </p>
 
-          {/* TWO ACTOR TERMINAL ROUTING CARDS */}
+          {/* Buyer aur factory dono ke signup path yahan se clear hote hain. */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto text-left px-2 mb-10">
             
-            {/* Actor A: Buyer Side */}
+            {/* Buyer card buyer dashboard flow ki taraf le jata hai. */}
             <div className="bg-white p-5 rounded-2xl border border-[#ece9e2] shadow-sm hover:border-[#cea975]/50 hover:shadow-md transition-all flex flex-col justify-between">
               <div>
                 <span className="text-[9px] bg-[#cea975]/20 text-[#a48150] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Brands & Retailers</span>
@@ -109,7 +108,7 @@ const LandingPage = () => {
               </Link>
             </div>
 
-            {/* Actor B: Factory Side */}
+            {/* Factory card manufacturer signup flow ki taraf le jata hai. */}
             <div className="bg-white p-5 rounded-2xl border border-[#ece9e2] shadow-sm hover:border-[#1e252b]/30 hover:shadow-md transition-all flex flex-col justify-between">
               <div>
                 <span className="text-[9px] bg-[#1e252b]/10 text-[#1e252b] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Factory Installations</span>
@@ -125,7 +124,7 @@ const LandingPage = () => {
 
           </div>
 
-          {/* EXACT PRODUCT CATEGORY LABELS */}
+          {/* Ye labels show karte hain ke platform garment categories focus karta hai. */}
           <div className="flex gap-5 justify-center text-xs font-medium text-[#7a858d] tracking-wider uppercase">
             <span>• T-shirts</span>
             <span>• Polo-shirts</span>
@@ -134,7 +133,7 @@ const LandingPage = () => {
         </div>
       </header>
 
-      {/* 3. WIDESCREEN INDUSTRIAL VIDEO CONTAINER (Points directly to public folder root) */}
+      {/* Video section manufacturing environment ka visual context deta hai. */}
       <section className="max-w-7xl mx-auto px-4 md:px-8 mb-16 md:mb-24 w-full">
         <div className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-xl border border-[#ece9e2] bg-[#1e252b] aspect-video max-h-[480px] w-full mx-auto">
           <video 
@@ -148,7 +147,7 @@ const LandingPage = () => {
             Your browser does not support the video tag.
           </video>
           
-          {/* Glass Text Overlay overlaying the playing video stream */}
+          {/* Video overlay important factory verification message highlight karta hai. */}
           <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-auto md:max-w-xs backdrop-blur-md bg-[#1e252b]/70 border border-white/10 p-4 rounded-xl text-white">
             <span className="text-[9px] bg-[#cea975] text-[#1e252b] px-1.5 py-0.5 rounded font-black tracking-widest uppercase">Floor Verification</span>
             <h3 className="text-sm font-bold mt-1">Automated Processing Lines</h3>
@@ -159,7 +158,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* 4. INDUSTRIAL PIPELINE INFRASTRUCTURE LOGS */}
+      {/* Ye cards platform ke three main benefits short form me dikhate hain. */}
       <section className="py-8 px-4 md:py-16 md:px-8 max-w-7xl mx-auto border-t border-[#ece9e2] w-full">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
           <div className="flex gap-4 items-start bg-white p-5 rounded-xl border border-[#ece9e2]">
@@ -186,7 +185,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* 5. FOOTER */}
+      {/* Footer me project status aur basic platform info rakhi gayi hai. */}
       <footer className="bg-[#1e252b] text-[#9a9fa3] py-10 px-4 md:px-8 border-t border-black mt-auto w-full">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] font-mono">
           <div className="text-center sm:text-left">

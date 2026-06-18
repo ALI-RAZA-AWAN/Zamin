@@ -1,6 +1,6 @@
 import React from 'react';
 
-// 'factory' is the Prop (the data passed down from the parent)
+// Parent component factory ka data bhejta hai, ye card usko readable format me dikhata hai.
 const FactoryCard = ({ factory }) => {
   return (
     <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">

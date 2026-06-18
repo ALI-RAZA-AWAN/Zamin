@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import BuyerSignup from './pages/BuyerSignup';
@@ -21,7 +21,7 @@ function App() {
         <Route path="/dashboard-buyer" element={<BuyerDashboard />} />
         <Route path="/factory/:id" element={<FactoryDetailsPage />} />
         
-        {/* Agar koi ajeeb URL likhe toh backup redirect */}
+        {/* Agar user unknown URL open kare to login page par bhej dete hain. */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
   );

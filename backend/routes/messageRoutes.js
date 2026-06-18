@@ -2,18 +2,17 @@ import express from 'express';
 const router = express.Router();
 import Message from '../models/Message.js';
 
-// 1. GET: Fetch conversation thread between two user entity nodes
+// Dono users ke darmiyan purani chat messages time order me fetch hoti hain.
 router.get('/thread/:userId/:partnerId', async (req, res) => {
   try {
     const { userId, partnerId } = req.params;
 
-    // Dono side ki chats filter out karne k liye logic queries mapping
     const conversation = await Message.find({
       $or: [
         { senderId: userId, receiverId: partnerId },
         { senderId: partnerId, receiverId: userId }
       ]
-    }).sort({ createdAt: 1 }); // Sorted raw sequentially 
+    }).sort({ createdAt: 1 });
 
     res.status(200).json({ success: true, conversation });
   } catch (error) {
@@ -22,7 +21,7 @@ router.get('/thread/:userId/:partnerId', async (req, res) => {
   }
 });
 
-// 2. POST: Dispatch/Save new chat string record
+// Naya message save hota hai aur phir frontend ko same message wapas milta hai.
 router.post('/send', async (req, res) => {
   try {
     const { senderId, receiverId, messageText } = req.body;

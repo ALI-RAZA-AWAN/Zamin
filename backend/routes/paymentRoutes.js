@@ -1,11 +1,10 @@
 import express from 'express';
 const router = express.Router();
 
-// Local model imports with explicit .js extension
 import Factory from '../models/Factory.js';
 import Order from '../models/Order.js';
 
-// 1. Deploy New Catalog Article Node (Base64 Safe)
+// Factory apna catalog article Base64 image ke sath save karti hai.
 router.post('/:factoryId/articles', async (req, res) => {
   try {
     const { factoryId } = req.params;
@@ -26,7 +25,7 @@ router.post('/:factoryId/articles', async (req, res) => {
   }
 });
 
-// 2. Fetch Active Inbound Manufacturing Requests
+// Manufacturer dashboard apni factory ke orders yahan se fetch karta hai.
 router.get('/orders/manufacturer/:factoryId', async (req, res) => {
   try {
     const { factoryId } = req.params;
@@ -37,7 +36,7 @@ router.get('/orders/manufacturer/:factoryId', async (req, res) => {
   }
 });
 
-// 3. Submit Quotation Unit Price or Reject
+// Manufacturer quote submit ya reject karne ke liye order status update karta hai.
 router.put('/orders/:orderId/action', async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -53,7 +52,7 @@ router.put('/orders/:orderId/action', async (req, res) => {
   }
 });
 
-// 4. Advance Production Floor Step State
+// Production phase update se buyer ko current progress nazar aati hai.
 router.put('/orders/:orderId/phase', async (req, res) => {
   try {
     const { orderId } = req.params;

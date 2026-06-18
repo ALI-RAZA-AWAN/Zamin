@@ -6,13 +6,13 @@ import jwt from 'jsonwebtoken';
 import User from './models/User.js';
 import Factory from './models/Factory.js';
 import Order from './models/Order.js';
-import Payment from './models/Payment.js'; // Ensure this path is correct
+import Payment from './models/Payment.js';
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || 'zamin_university_project_secret';
 const JWT_EXPIRES_IN = '7d';
 app.use(cors());
 
-// Image uploads ke liye 50MB limit zaroori hai
+// Images Base64 me aa sakti hain, is liye request size thora bara rakha hai.
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -20,7 +20,7 @@ mongoose.connect('mongodb://127.0.0.1:27017/zaminDB')
   .then(() => console.log('🚀 Engine Online'))
   .catch(err => console.error('DB Connection Failed:', err));
 
-// ================= AUTH ROUTES =================
+// Yahan auth ka complete flow hai: signup, login, password hash aur JWT token.
 
 const createAuthToken = (user) => jwt.sign(
   {
@@ -32,6 +32,7 @@ const createAuthToken = (user) => jwt.sign(
   { expiresIn: JWT_EXPIRES_IN }
 );
 
+// Protected route par request aane se pehle token validate karte hain.
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
@@ -48,7 +49,7 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// 1. Manufacturer Registration
+// Manufacturer signup me pehle user banta hai, phir us user ki factory profile banti hai.
 app.post('/api/auth/register-manufacturer', async (req, res) => {
   try {
     const { name, email, password, factoryName, location, capacity } = req.body;
@@ -76,6 +77,7 @@ app.post('/api/auth/register-manufacturer', async (req, res) => {
 });
 app.get('/api/buyer/shortlist/:buyerId', async (req, res) => {
   try {
+    // Invalid id par database query chalane ke bajaye request yahin stop kar dete hain.
     if (!mongoose.Types.ObjectId.isValid(req.params.buyerId)) {
       return res.status(400).json({ success: false, shortlisted: [], message: "Invalid buyer id" });
     }
@@ -94,6 +96,7 @@ app.post('/api/buyer/shortlist-toggle', async (req, res) => {
   try {
     const { buyerId, factoryId } = req.body;
 
+    // Shortlist relation sirf valid buyer aur valid factory ke darmiyan banta hai.
     if (!mongoose.Types.ObjectId.isValid(buyerId) || !mongoose.Types.ObjectId.isValid(factoryId)) {
       return res.status(400).json({ success: false, message: "Invalid buyer or factory id" });
     }
@@ -104,6 +107,7 @@ app.post('/api/buyer/shortlist-toggle', async (req, res) => {
     const factory = await Factory.findById(factoryId);
     if (!factory) return res.status(404).json({ success: false, message: "Factory not found" });
 
+    // Agar factory pehle se shortlist me ho to remove, warna add kar dete hain.
     const exists = user.shortlistedFactories.some(id => id.toString() === factoryId);
     if (exists) {
       user.shortlistedFactories = user.shortlistedFactories.filter(id => id.toString() !== factoryId);
@@ -121,36 +125,36 @@ app.post('/api/buyer/shortlist-toggle', async (req, res) => {
   }
 });
 
-// 2. Buyer Registration
+// Buyer signup me password hash hota hai, plain password database me save nahi hota.
 app.post('/api/auth/register-buyer', async (req, res) => {
   try {
     const { name, email, password, brandName } = req.body;
     
-    // Check if user exists
+    // Email normalize karte hain taake same email different case me duplicate na ban jaye.
     const normalizedEmail = email.toLowerCase().trim();
     const existing = await User.findOne({ email: normalizedEmail });
     if (existing) return res.status(400).json({ success: false, message: "Email already exists" });
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Save New User
+    // Buyer ka account brand name ke sath save hota hai.
     const newUser = new User({ 
       name, 
       email: normalizedEmail, 
       passwordHash, 
       role: 'buyer', 
-      brandName: brandName || 'N/A' // brandName ki value yahan se jati hai
+      brandName: brandName || 'N/A'
     });
     
     await newUser.save();
     res.status(201).json({ success: true, message: "Buyer Registered" });
   } catch (err) { 
-    console.error("DEBUG ERROR:", err); // Yeh terminal mein error dikhayega
+    console.error("Buyer register error:", err);
     res.status(500).json({ success: false, message: err.message }); 
   }
 });
 
-// 3. Login
+// Login me password compare hota hai aur successful login par token return hota hai.
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -158,6 +162,7 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) return res.status(401).json({ success: false, message: "Invalid credentials" });
 
     const storedPassword = user.passwordHash || '';
+    // Purane plain-password users bhi login kar saken, phir unka password hash me convert ho jaye.
     const passwordMatches = storedPassword.startsWith('$2')
       ? await bcrypt.compare(password, storedPassword)
       : storedPassword === password;
@@ -198,9 +203,7 @@ app.get('/api/auth/me', verifyToken, async (req, res) => {
   }
 });
 
-// ================= CATALOG ENGINE =================
-
-// Publish Article
+// Factory catalog ka data buyer side par public showcase me dikhaya jata hai.
 app.post('/api/factories/:factoryId/articles', async (req, res) => {
   try {
     const { factoryId } = req.params;
@@ -231,7 +234,7 @@ app.delete('/api/factories/:factoryId/articles/:articleId', async (req, res) => 
   }
 });
 
-// ================= ORDER ENGINE =================
+// Order engine me buyer proposal, manufacturer quote aur production tracking handle hoti hai.
 
 app.post('/api/orders/proposal', async (req, res) => {
   try {
@@ -242,15 +245,15 @@ app.post('/api/orders/proposal', async (req, res) => {
       return res.status(400).json({ success: false, message: "Buyer sample image or link is required." });
     }
     
-    // 1. Database se Buyer ka naam fetch karein
+    // Buyer se brand name uthate hain taake manufacturer ko proposal me identity dikhe.
     const buyer = await User.findById(buyerId);
     
-    // 2. Naya Order object banayein (brandName ke saath)
+    // Buyer ki submitted image/link aur quantity ke sath naya order save hota hai.
     const newOrder = new Order({
       ...orderData,
       buyerArticleUrl: sampleImage,
       buyerId: buyerId,
-      brandName: buyer ? buyer.brandName : 'Independent Retailer' // Yahan se field set hogi
+      brandName: buyer ? buyer.brandName : 'Independent Retailer'
     });
     
     await newOrder.save();
@@ -267,7 +270,7 @@ app.get('/api/factories', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 2. GET: Specific factory ki details
+// Buyer jab factory profile open karta hai to specific factory ka catalog bhi milta hai.
 app.get('/api/factories/:factoryId', async (req, res) => {
   try {
     const factory = await Factory.findById(req.params.factoryId);
@@ -279,13 +282,13 @@ app.get('/api/factories/:factoryId', async (req, res) => {
 app.get('/api/orders/manufacturer/:factoryId', async (req, res) => {
   try {
     const orders = await Order.find({ factoryId: req.params.factoryId })
-      .populate('buyerId', 'brandName name') // Yahan buyerId ko resolve kar rahe hain
+      .populate('buyerId', 'brandName name')
       .exec();
     res.json({ success: true, orders });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 2. GET: Buyer ke apne orders dekhne ke liye
+// Buyer dashboard me newest proposals pehle dikhane ke liye orders sort hote hain.
 app.get('/api/orders/buyer/:buyerId', async (req, res) => {
   try {
     const orders = await Order.find({ buyerId: req.params.buyerId })
@@ -295,18 +298,17 @@ app.get('/api/orders/buyer/:buyerId', async (req, res) => {
     res.json({ success: true, orders });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-// Ensure this route exists in your server.js under Catalog Engine
+// Factory list buyer explore page aur search feature ke liye use hoti hai.
 app.get('/api/factories', async (req, res) => {
   try {
     const factories = await Factory.find({}); 
-    // Console log karein taake pata chale backend ne kya uthaya
     console.log("Factories found in DB:", factories.length);
     res.json({ success: true, factories });
   } catch (err) { 
     res.status(500).json({ error: err.message }); 
   }
 });
-// 1. Order Status Action (Accept/Reject)
+// Manufacturer yahan se quote submit karta hai ya order reject karta hai.
 app.put('/api/orders/:orderId/action', async (req, res) => {
   try {
     const { status, price } = req.body;
@@ -318,7 +320,7 @@ app.put('/api/orders/:orderId/action', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 2. Production Phase Update
+// Accepted order ki production stage manufacturer dashboard se update hoti hai.
 app.put('/api/orders/:orderId/phase', async (req, res) => {
   try {
     const { nextStage } = req.body;
@@ -326,12 +328,9 @@ app.put('/api/orders/:orderId/phase', async (req, res) => {
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-// ✅ ADD THIS TO server.js (Under ORDER ENGINE section)
-
-// REPLACE THIS ROUTE IN YOUR server.js (Under ORDER ENGINE)
+// Buyer quote accept kare to order accepted hota hai aur contract/payment record ban jata hai.
 app.put('/api/orders/:orderId/accept-price', async (req, res) => {
   try {
-    // 1. Order status update
     const order = await Order.findByIdAndUpdate(
       req.params.orderId, 
       { status: 'accepted' }, 
@@ -340,7 +339,7 @@ app.put('/api/orders/:orderId/accept-price', async (req, res) => {
     
     if (!order) return res.status(404).json({ message: "Order not found" });
 
-    // 2. Automatically generate a simple contract/payment record for the project demo.
+    // Total amount quantity aur negotiated unit price se calculate hota hai.
     const total = Number(order.quantity || 0) * Number(order.negotiatedPricePerUnit || 0);
     let payment = await Payment.findOne({ orderId: order._id });
 
@@ -380,19 +379,16 @@ app.put('/api/orders/:orderId/accept-price', async (req, res) => {
       await payment.save();
     }
 
-    // 3. Updated order aur generated payment dono bhejein
     res.json({ success: true, order: order, payment });
   } catch (err) { 
     res.status(500).json({ error: err.message }); 
   }
 });
-// ================= PAYMENT ENGINE =================
-// 1. Initialize Payment (Milestones generate karna)
+// Payment plan milestones me save hota hai, real gateway yahan use nahi ho raha.
 app.post('/api/payments/initialize', async (req, res) => {
   try {
     const { orderId, buyerId, factoryId, totalAmount } = req.body;
     
-    // 30-40-30 breakdown (Example)
     const milestones = [
       { milestoneNumber: 1, description: "Advance Procurement", percentage: 30, amount: totalAmount * 0.3, status: 'unpaid' },
       { milestoneNumber: 2, description: "Mid-Production", percentage: 40, amount: totalAmount * 0.4, status: 'unpaid' },
@@ -412,9 +408,7 @@ app.post('/api/payments/initialize', async (req, res) => {
     res.status(201).json({ success: true, payment: newPayment });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-// ================= PAYMENT ENGINE (Updated) =================
-
-// 1. Initialize Payment
+// Ye initialize route same payment plan ko create karta hai jab frontend direct call kare.
 app.post('/api/payments/initialize', async (req, res) => {
   try {
     const { orderId, buyerId, factoryId, totalAmount } = req.body;
@@ -436,7 +430,7 @@ app.post('/api/payments/initialize', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 2. NEW: Verify Payment Milestone (Manufacturer side)
+// Milestone verify karne se installment ka status update hota hai.
 app.put('/api/payments/verify-milestone', async (req, res) => {
   try {
     const { orderId, milestoneIndex } = req.body;
@@ -444,12 +438,11 @@ app.put('/api/payments/verify-milestone', async (req, res) => {
     const payment = await Payment.findOne({ orderId });
     if (!payment) return res.status(404).json({ message: "Payment record not found" });
 
-    // Mark milestone as paid
     payment.milestones[milestoneIndex].status = 'paid_escrow';
     payment.milestones[milestoneIndex].paidAt = new Date();
     await payment.save();
 
-    // If it's the 1st milestone (Advance), trigger the production start
+    // Pehli installment verify ho to order production flow me accepted rahega.
     if (milestoneIndex === 0) {
       await Order.findByIdAndUpdate(orderId, { status: 'accepted' });
     }
@@ -458,14 +451,13 @@ app.put('/api/payments/verify-milestone', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 3. GET: Fetch Payment Status for an Order
+// Buyer contract modal me payment/contract data isi route se fetch hota hai.
 app.get('/api/payments/:orderId', async (req, res) => {
   try {
     const payment = await Payment.findOne({ orderId: req.params.orderId });
     res.json({ success: true, payment });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-// Ensure this route is in server.js
 app.put('/api/orders/:orderId/phase', async (req, res) => {
   try {
     const { nextStage } = req.body;

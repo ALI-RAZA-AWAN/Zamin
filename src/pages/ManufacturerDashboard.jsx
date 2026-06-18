@@ -9,9 +9,9 @@ function ManufacturerDashboard() {
   const [catalogItems, setCatalogItems] = useState([]);
   const [showCatalogForm, setShowCatalogForm] = useState(false);
   
-  // Catalog Form States
+  // Catalog form ki fields alag state me hain taake upload modal easily reset ho sake.
   const [articleName, setArticleName] = useState('');
-  const [imageUrl, setImageUrl] = useState(''); // Isme Base64 string save hogi
+  const [imageUrl, setImageUrl] = useState('');
   const [moq, setMoq] = useState('');
   const [description, setDescription] = useState('');
   
@@ -82,19 +82,19 @@ function ManufacturerDashboard() {
     } catch (e) { console.error(e); }
   };
 
-  // Device se image pick karke base64 text me convert karne ka function
+  // Image ko Base64 me convert karte hain taake simple project me file server ki zaroorat na ho.
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = () => {
-      setImageUrl(reader.result); // Yeh image ko text string banayega
+      setImageUrl(reader.result);
     };
     reader.readAsDataURL(file);
   };
 
-  // ✅ FIXED: Native form reset crash completely isolated and handled manually via React lifecycle state control
+  // Catalog item submit hone ke baad list refresh hoti hai aur form close ho jata hai.
   const handleUploadCatalogArticle = async (e) => {
     e.preventDefault();
     if (!imageUrl) {
@@ -112,7 +112,6 @@ function ManufacturerDashboard() {
       if (data.success) {
         alert("New catalog item deployed live onto public directory profile.");
         
-        // React State variables reset to blank sequence mapping
         resetCatalogForm();
         setShowCatalogForm(false);
         fetchCatalogItems(user.factoryId);
@@ -157,7 +156,7 @@ function ManufacturerDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col md:flex-row text-gray-800">
-      {/* Sidebar Layout */}
+      {/* Sidebar factory user ko dashboard sections switch karne deta hai. */}
       <div className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-gray-200 p-5 flex flex-col justify-between shrink-0">
         <div>
           <div className="mb-6">
@@ -174,7 +173,7 @@ function ManufacturerDashboard() {
         <button onClick={handleLogout} className="mt-4 w-full px-3 py-2 text-xs font-bold bg-red-50 text-red-600 rounded-xl hover:bg-red-100 text-center uppercase tracking-wider">Log Out Engine Account</button>
       </div>
 
-      {/* Main Panel Content */}
+      {/* Main panel active tab ke mutabiq data show karta hai. */}
       <div className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto max-w-5xl">
         {activeTab === 'inbound' && (
           <div>
@@ -281,7 +280,7 @@ function ManufacturerDashboard() {
             </span>
           </div>
 
-          {/* Phase Controller */}
+          {/* Manufacturer yahan se production ka current phase mark karta hai. */}
           <div className="grid grid-cols-2 gap-2 mt-4">
             {['Phase 0: Cutting', 'Phase 1: Stitching', 'Phase 2: Washing', 'Phase 3: Quality Check', 'Phase 4: Dispatched'].map((stage) => (
               <button 
@@ -425,7 +424,7 @@ function ManufacturerDashboard() {
                 </div>
               </div>
               
-              {/* ✅ MODIFIED: File Input tracker synced with React clean lifecycle parameters to prevent layout failure */}
+              {/* File input image preview ke sath catalog article create karta hai. */}
               <div>
                 <label className="text-[10px] uppercase font-bold text-gray-600 block mb-1">Article Finished Product Reference Image</label>
                 <input 

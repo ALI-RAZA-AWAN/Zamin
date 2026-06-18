@@ -1,8 +1,8 @@
-// src/api.js
-const BASE_URL = 'http://localhost:5000/api'; // Your Python/Flask backend entry point
+// Frontend ki common API calls yahan rakhi hain taake components me code repeat na ho.
+const BASE_URL = 'http://localhost:5000/api';
 
 export const API = {
-  // Authentication Routes
+  // Login/register calls auth routes ko hit karti hain.
   login: async (credentials) => {
     const res = await fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
@@ -30,13 +30,13 @@ export const API = {
     return res.json();
   },
 
-  // Sourcing Directory Routes
+  // Buyer explore page factories list isi call se leta hai.
   getFactories: async () => {
     const res = await fetch(`${BASE_URL}/factories`);
     return res.json();
   },
 
-  // Order & Proposal Communication Flow
+  // Buyer proposal aur dashboards ke order records yahan se manage hote hain.
   createOrderProposal: async (orderData) => {
     const res = await fetch(`${BASE_URL}/orders/proposal`, {
       method: 'POST',

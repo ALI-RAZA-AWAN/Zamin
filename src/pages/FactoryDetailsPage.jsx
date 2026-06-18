@@ -7,7 +7,7 @@ function FactoryDetailsPage() {
   const [factory, setFactory] = useState(null);
   const [buyer, setBuyer] = useState(null);
 
-  // Proposal Submission Parameters state variable array mapping
+  // Buyer proposal ki basic fields yahan local state me rakhi gayi hain.
   const [quantity, setQuantity] = useState('');
   const [buyerArticleUrl, setBuyerArticleUrl] = useState('');
   const [buyerArticleFileName, setBuyerArticleFileName] = useState('');
@@ -18,13 +18,11 @@ function FactoryDetailsPage() {
     if (!raw) { navigate('/login'); return; }
     setBuyer(JSON.parse(raw));
 
-    // Dynamic structural initialization route recall
     fetchFactoryProfile();
   }, [id]);
 
  const fetchFactoryProfile = async () => {
     try {
-      // ✅ FIX: /profile/ hata dein
       const res = await fetch(`http://localhost:5000/api/factories/${id}`); 
       const data = await res.json();
       if (data.success) setFactory(data.factory);
@@ -82,7 +80,7 @@ function FactoryDetailsPage() {
     <div className="min-h-screen bg-gray-50 font-sans p-4 sm:p-6 md:p-8 max-w-4xl mx-auto text-gray-800">
       <button onClick={() => navigate('/dashboard-buyer')} className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-4 block hover:underline">← Exit Infrastructure View</button>
       
-      {/* Infrastructure Node Header Board Block */}
+      {/* Factory ki basic information buyer ko proposal se pehle dikhai jati hai. */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-xl font-black text-gray-900">{factory.name}</h1>
@@ -94,7 +92,7 @@ function FactoryDetailsPage() {
         </div>
       </div>
 
-      {/* Industrial Catalog Showcase Module Grid */}
+      {/* Factory ke uploaded catalog articles buyer ko reference ke liye milte hain. */}
       <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-3">Mill Sample Capabilities Inventory</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         {factory.uploadedArticles?.map((item, index) => (
@@ -112,7 +110,7 @@ function FactoryDetailsPage() {
         )}
       </div>
 
-      {/* Proposal Posting Form Segment Panel */}
+      {/* Buyer yahan quantity, image/link aur requirements ke sath proposal send karta hai. */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
         <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-1">Issue Sourcing Batch Proposal Request</h3>
         <p className="text-xs text-gray-500 mb-4">Transmit custom production sheet inputs to target entity queue arrays.</p>
